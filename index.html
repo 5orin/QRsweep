@@ -163,7 +163,10 @@
     .field{flex:1 1 100%;}
   }
 
+  .app-footer{text-align:center;font-size:12px;color:var(--muted);margin-top:24px;padding-top:14px;border-top:1px solid var(--border);}
+
   @media print{
+    .app-footer{display:none !important;}
     @page{ size:A4; margin:8mm; }
     body{background:#fff;}
     header.top, #refSection, #addSection, #syncSection, .toolbar, .toast-stack, .pallet-card .actions, .pallet-card .sel-wrap, .pallet-card .code-toggle{display:none !important;}
@@ -193,7 +196,7 @@
 
   <header class="top">
     <div>
-      <p class="eyebrow" data-i18n="eyebrow">2Stars s.r.o. · příjem palet do WMS</p>
+      <p class="eyebrow" data-i18n="eyebrow">2Stars s.r.o. · Tvorba QR kódů pro zaskladnění</p>
       <h1 data-i18n="h1">Příjem palet — QR štítky</h1>
       <p class="sub" data-i18n="sub">Vyberte referenci, zadejte počet plných KLT a vytiskněte QR štítek pro každou paletu — bez manuálního zadávání do WMS. Funguje i bez internetu po načtení stránky.</p>
     </div>
@@ -352,6 +355,8 @@
     <div class="empty-msg" id="listEmptyMsg" data-i18n="list_empty_msg">Zatím nejsou přidány žádné palety.</div>
   </section>
 
+  <footer class="app-footer">© <span id="footerYear"></span> Sorin Soproncu</footer>
+
 </div>
 
 <div class="modal-backdrop" id="exportModal">
@@ -376,7 +381,7 @@
   // =========================================================================
   var I18N = {
     cs: {
-      eyebrow:'2Stars s.r.o. · příjem palet do WMS', h1:'Příjem palet — QR štítky',
+      eyebrow:'2Stars s.r.o. · Tvorba QR kódů pro zaskladnění', h1:'Příjem palet — QR štítky',
       sub:'Vyberte referenci, zadejte počet plných KLT a vytiskněte QR štítek pro každou paletu — bez manuálního zadávání do WMS. Funguje i bez internetu po načtení stránky.',
       pallets_logged:'Zaznamenané palety', info_title:'Info — co je v QR kódu, hostování, ukládání dat',
       ref_title:'Knihovna referencí', ref_hint:'Uloženo z databáze dílů AUTOPDF. Upravte řádek, pokud zákazník potřebuje něco jiného, nebo přidejte nový níže.',
@@ -421,7 +426,7 @@
       t_live_sync_on:'Živá synchronizace zapnuta.', t_live_sync_off:'Živá synchronizace vypnuta — změny se neukládají automaticky.'
     },
     en: {
-      eyebrow:'2Stars s.r.o. · WMS bulk intake', h1:'Pallet Intake — QR Labels',
+      eyebrow:'2Stars s.r.o. · QR code generation for putaway', h1:'Pallet Intake — QR Labels',
       sub:'Pick a reference, enter full KLT count, get a print-ready QR label for each pallet — no manual WMS entry. Works fully offline once the page is loaded.',
       pallets_logged:'Pallets logged', info_title:'Info — what\'s in the QR code, hosting & data storage',
       ref_title:'Reference library', ref_hint:'Saved from your AUTOPDF parts database. Edit a row if a customer needs something different, or add a new one below.',
@@ -765,7 +770,7 @@
     if(pullInFlight) return Promise.resolve();
     pullInFlight = true;
     setSyncStatus('loading');
-    return fetchRetry(syncUrl, undefined, applyAlways ? 2 : 1).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    return fetchRetry(syncUrl, undefined, 2).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
       .then(function(data){
         pullInFlight = false;
         if(!applyAlways && (editingId !== null || editingRefId !== null)) { setSyncStatus('ok'); return; }
@@ -778,6 +783,10 @@
   }
   function startPolling(){
     setInterval(function(){ if(syncUrl && liveSyncOn) pullState(false); }, 4000);
+    document.addEventListener('visibilitychange', function(){
+      if(document.visibilityState === 'visible' && syncUrl && liveSyncOn) pullState(true);
+    });
+    window.addEventListener('focus', function(){ if(syncUrl && liveSyncOn) pullState(true); });
   }
 
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -1230,6 +1239,7 @@
   document.getElementById('copyExportBtn').addEventListener('click', function(){ copyText(document.getElementById('exportArea').value); });
 
   // ---------- init ----------
+  document.getElementById('footerYear').textContent = new Date().getFullYear();
   loadAll().then(function(){
     applyI18n();
     startPolling();
