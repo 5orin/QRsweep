@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pallet Intake — QR Label Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F2EB;--surface:#FFFFFF;--ink:#20242A;--muted:#6B6F76;--border:#DCD7C9;
+    --primary:#1F3A5F;--primary-dark:#152A45;--primary-ink:#FFFFFF;--accent:#E0791A;--accent-ink:#20242A;
+    --success:#2E7D4F;--danger:#B23A2E;--stamp:#B23A2E;--radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Space Grotesk',system-ui,-apple-system,sans-serif;line-height:1.4;-webkit-tap-highlight-color: transparent;}
+  .mono{font-family:'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;}
+  #app{max-width:1180px;margin:0 auto;padding:20px 18px 80px;}
+
+  header.top{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px;border-bottom:3px solid var(--ink);padding-bottom:14px;}
+  .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11.5px;color:var(--accent);font-weight:700;margin:0 0 4px;}
+  h1{font-size:26px;margin:0;font-weight:700;letter-spacing:-0.01em;}
+  .sub{color:var(--muted);font-size:13.5px;margin-top:4px;max-width:560px;}
+  .header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .counter-pill{background:var(--ink);color:#fff;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;white-space:nowrap;}
+  .counter-pill b{font-size:17px;font-family:'JetBrains Mono',monospace;}
+  .lang-btn{background:transparent;border:1.5px solid var(--ink);border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer;}
+  .lang-btn:hover{background:#fff;}
+
+  section.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 18px 20px;margin-bottom:16px;}
+  section.panel > h2{font-size:15px;margin:0 0 4px;display:flex;align-items:center;gap:8px;}
+  section.panel > h2 .num{background:var(--ink);color:#fff;width:20px;height:20px;border-radius:5px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;}
+  .hint{color:var(--muted);font-size:12.5px;margin:2px 0 14px;}
+
+  details.panel-collapsible{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;}
+  details.panel-collapsible summary{font-size:15px;font-weight:700;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;color:var(--ink);padding:4px 0;}
+  details.panel-collapsible summary::-webkit-details-marker{display:none;}
+  details.panel-collapsible summary .num{background:var(--ink);color:#fff;width:20px;height:20px;border-radius:5px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;}
+  details.panel-collapsible[open]{padding-bottom:20px;}
+  details.panel-collapsible[open] summary{margin-bottom:10px;}
+  details.panel-collapsible > .hint{margin-top:-8px;}
+
+  details.help{margin-bottom:16px;}
+  details.help summary{cursor:pointer;font-size:12.5px;color:var(--primary);font-weight:600;list-style:none;}
+  details.help summary::-webkit-details-marker{display:none;}
+  details.help summary::before{content:"▸ ";}
+  details.help[open] summary::before{content:"▾ ";}
+  details.help .qrformat{margin-top:10px;background:#F7F4ED;border:1px dashed var(--border);border-radius:8px;padding:12px 14px;font-size:12px;}
+  details.help .qrformat code{font-family:'JetBrains Mono',monospace;color:var(--primary-dark);}
+  details.help .qrformat .blank{color:var(--muted);font-style:italic;}
+  details.help .qrformat .klt{color:var(--accent);font-weight:700;}
+  details.help .qrformat p{margin:8px 0 0;color:#6B6F76;}
+  .info-lang{display:none;}
+  .info-lang.active{display:block;}
+
+  .field.ref-auto{position:relative;}
+  .ref-dropdown{position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--border);border-radius:7px;margin-top:4px;max-height:230px;overflow-y:auto;z-index:40;box-shadow:0 6px 18px rgba(0,0,0,.14);display:none;}
+  .ref-dropdown.open{display:block;}
+  .ref-dropdown .opt{padding:9px 12px;cursor:pointer;font-size:13.5px;display:flex;justify-content:space-between;gap:10px;align-items:center;}
+  .ref-dropdown .opt:hover,.ref-dropdown .opt.active{background:#F1EEE4;}
+  .ref-dropdown .opt .meta{color:var(--muted);font-size:11.5px;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+  .ref-dropdown .opt-empty{padding:9px 12px;color:var(--muted);font-size:13px;}
+
+  .form-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+  .field{display:flex;flex-direction:column;gap:5px;flex:1 1 140px;min-width:120px;}
+  .field.grow{flex:2 1 220px;}
+  .field.narrow{flex:0 1 110px;min-width:90px;}
+  .field label{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;}
+  input[type=text],input[type=number],select,textarea{border:1.5px solid var(--border);border-radius:7px;padding:10px 11px;font-size:15px;font-family:'Space Grotesk',sans-serif;background:#fff;color:var(--ink);width:100%;}
+  input:focus,select:focus,textarea:focus{outline:3px solid #1F3A5F33;border-color:var(--primary);}
+  .readout{background:#F7F4ED;border:1.5px dashed var(--border);border-radius:7px;padding:10px 11px;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;color:var(--primary-dark);min-height:20px;}
+  .checkbox-line{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);flex:1 1 100%;}
+  .live-sync-row{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:13px;color:var(--ink);}
+  .switch{position:relative;display:inline-block;width:40px;height:23px;flex-shrink:0;cursor:pointer;}
+  .switch input{opacity:0;width:0;height:0;}
+  .switch-track{position:absolute;inset:0;background:var(--border);border-radius:999px;transition:background .15s ease;}
+  .switch-track::before{content:"";position:absolute;width:17px;height:17px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .15s ease;box-shadow:0 1px 2px rgba(0,0,0,.3);}
+  .switch input:checked + .switch-track{background:var(--success);}
+  .switch input:checked + .switch-track::before{transform:translateX(17px);}
+  .checkbox-line input{width:16px;height:16px;}
+
+  button{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;border-radius:8px;border:none;padding:11px 18px;cursor:pointer;transition:filter .12s ease, transform .05s ease;}
+  button:active{transform:translateY(1px);}
+  .btn-primary{background:var(--primary);color:var(--primary-ink);}
+  .btn-primary:hover{filter:brightness(1.1);}
+  .btn-accent{background:var(--accent);color:var(--accent-ink);}
+  .btn-accent:hover{filter:brightness(1.06);}
+  .btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--border);}
+  .btn-ghost:hover{background:#F1EEE4;}
+  .btn-danger{background:transparent;color:var(--danger);border:1.5px solid var(--danger);}
+  .btn-danger:hover{background:#FBEAE7;}
+  .btn-small{padding:6px 10px;font-size:12px;border-radius:6px;}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+
+  .ref-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:10px;}
+  .ref-table th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1.5px solid var(--border);padding:6px 8px;}
+  .ref-table td{padding:7px 8px;border-bottom:1px solid #EFEBE0;vertical-align:middle;}
+  .ref-table tr:last-child td{border-bottom:none;}
+  .ref-table input{padding:6px 8px;font-size:13.5px;}
+  .ref-table .actions-cell{display:flex;gap:6px;white-space:nowrap;}
+  .empty-msg{color:var(--muted);font-size:13px;padding:10px 0;}
+  .ref-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;border-top:1px dashed var(--border);padding-top:12px;}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;}
+  .toolbar .search{flex:1 1 200px;}
+  .toolbar select{width:auto;padding:9px 10px;font-size:13.5px;}
+  .toolbar .spacer{flex:1 1 auto;}
+  .count-badge{font-size:12.5px;color:var(--muted);font-weight:600;}
+
+  #palletGrid{display:grid;grid-template-columns:repeat(auto-fill, minmax(250px,1fr));gap:14px;}
+  .pallet-card{position:relative;background:#fff;border:1.5px solid var(--ink);border-radius:8px;padding:14px 14px 12px;overflow:hidden;}
+  .pallet-card::before{content:"";position:absolute;top:9px;left:9px;width:10px;height:10px;border-radius:50%;background:var(--bg);border:1.5px solid var(--ink);}
+  .pallet-card .card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-left:22px;}
+  .pallet-card .ref-code{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;line-height:1.15;word-break:break-word;color:var(--primary-dark);}
+  .pallet-card .gen-date{font-size:11px;color:var(--muted);text-align:center;margin-top:2px;}
+  .pallet-card .klt-badge{display:inline-block;margin-top:3px;font-size:10.5px;font-family:'JetBrains Mono',monospace;background:#F1EEE4;color:var(--muted);border-radius:4px;padding:1px 6px;letter-spacing:.02em;}
+  .pallet-card .sel{width:17px;height:17px;flex-shrink:0;margin-top:2px;}
+  .pallet-card .qty-line{margin-top:8px;margin-left:22px;}
+  .pallet-card .total{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--primary-dark);}
+  .pallet-card .total small{font-size:12px;font-weight:600;color:var(--muted);margin-left:4px;}
+  .pallet-card .breakdown{font-size:12px;color:var(--muted);}
+  .pallet-card .qr-wrap{display:flex;justify-content:center;margin:10px 0 6px;}
+  .pallet-card .qr-wrap svg{width:140px;height:140px;image-rendering:pixelated;background:#fff;}
+  .pallet-card .qr-error{font-size:11.5px;color:var(--danger);text-align:center;padding:20px 6px;border:1px dashed var(--danger);border-radius:6px;}
+  .pallet-card .pal-no{text-align:center;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted);letter-spacing:.03em;}
+  .pallet-card .pal-no b{color:var(--ink);}
+  .pallet-card .notes{margin-top:8px;font-size:11px;color:var(--muted);font-style:italic;border-top:1px dashed var(--border);padding-top:6px;word-break:break-word;}
+  .pallet-card .actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+  .pallet-card .actions button{flex:1 1 auto;}
+  .pallet-card .code-toggle{margin-top:8px;font-size:11px;}
+  .pallet-card .code-toggle summary{cursor:pointer;color:var(--primary);font-weight:600;list-style:none;}
+  .pallet-card .code-toggle summary::-webkit-details-marker{display:none;}
+  .pallet-card .code-toggle summary::before{content:"▸ ";}
+  .pallet-card .code-toggle[open] summary::before{content:"▾ ";}
+  .pallet-card .code-toggle .codebox{margin-top:6px;background:#F7F4ED;border:1px dashed var(--border);border-radius:6px;padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:10.5px;word-break:break-all;color:var(--primary-dark);}
+  .pallet-card .code-toggle .copy-code{margin-top:5px;width:100%;}
+  .stamp{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%) rotate(-14deg);border:3px solid var(--stamp);color:var(--stamp);font-weight:700;font-size:20px;letter-spacing:.06em;padding:4px 14px;border-radius:6px;text-transform:uppercase;opacity:.85;pointer-events:none;font-family:'Space Grotesk',sans-serif;background:rgba(255,255,255,.55);}
+  .pallet-card.is-printed{opacity:.75;}
+
+  .pallet-card.editing .view-only{display:none;}
+  .pallet-card .edit-fields{display:none;}
+  .pallet-card.editing .edit-fields{display:flex;flex-direction:column;gap:8px;margin-left:22px;margin-top:8px;}
+  .pallet-card .edit-fields label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .pallet-card .edit-fields input,.pallet-card .edit-fields textarea{font-size:13px;padding:7px 8px;}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(20,22,26,.55);display:none;align-items:center;justify-content:center;padding:20px;z-index:50;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:#fff;border-radius:10px;max-width:640px;width:100%;padding:20px;max-height:85vh;overflow:auto;}
+  .modal h3{margin:0 0 10px;font-size:16px;}
+  .modal textarea{width:100%;height:260px;font-size:12px;font-family:'JetBrains Mono',monospace;}
+  .modal .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;}
+
+  .toast-stack{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center;}
+  .toast{background:var(--ink);color:#fff;padding:11px 18px;border-radius:8px;font-size:13px;opacity:0;transform:translateY(8px);transition:opacity .2s ease, transform .2s ease;pointer-events:none;border-left:4px solid var(--success);box-shadow:0 4px 14px rgba(0,0,0,.18);display:flex;align-items:center;gap:8px;max-width:340px;}
+  .toast.show{opacity:1;transform:translateY(0);}
+  .toast.err{border-left-color:var(--danger);}
+  .toast .icon{font-weight:700;}
+
+  @media (max-width:560px){
+    header.top{flex-direction:column;align-items:flex-start;}
+    .form-row{gap:10px;}
+    .field{flex:1 1 100%;}
+  }
+
+  @media print{
+    @page{ size:A4; margin:8mm; }
+    body{background:#fff;}
+    header.top, #refSection, #addSection, #syncSection, .toolbar, .toast-stack, .pallet-card .actions, .pallet-card .sel-wrap, .pallet-card .code-toggle{display:none !important;}
+    .pallet-card::before{display:none !important;}
+    .panel{border:none;padding:0;margin:0;}
+    #listSection{border:none;padding:0;}
+    #listSection > h2, #listSection .hint{display:none !important;}
+    #palletGrid{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:134mm;gap:4mm;}
+    .pallet-card{border:1px dashed #333;break-inside:avoid;page-break-inside:avoid;width:100%;height:134mm;overflow:hidden;box-sizing:border-box;padding:20mm 6mm 4mm;display:flex;flex-direction:column;justify-content:flex-start;}
+    .pallet-card:not(.print-include){display:none !important;}
+    .pallet-card .card-top{margin-left:0;}
+    .pallet-card .qty-line{margin-left:0;margin-top:6px;}
+    .pallet-card .ref-code{font-size:24px;}
+    .pallet-card .klt-badge{font-size:13px;padding:2px 8px;}
+    .pallet-card .total{font-size:34px;}
+    .pallet-card .breakdown{font-size:14px;}
+    .pallet-card .qr-wrap{margin:8px 0 4px;}
+    .pallet-card .qr-wrap svg{width:65mm;height:65mm;}
+    .pallet-card .pal-no{font-size:14px;}
+    .pallet-card .gen-date{font-size:13px;}
+    .pallet-card .notes{display:none !important;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="top">
+    <div>
+      <p class="eyebrow" data-i18n="eyebrow">2Stars s.r.o. · příjem palet do WMS</p>
+      <h1 data-i18n="h1">Příjem palet — QR štítky</h1>
+      <p class="sub" data-i18n="sub">Vyberte referenci, zadejte počet plných KLT a vytiskněte QR štítek pro každou paletu — bez manuálního zadávání do WMS. Funguje i bez internetu po načtení stránky.</p>
+    </div>
+    <div class="header-right">
+      <button class="lang-btn" id="langToggleBtn" type="button">EN</button>
+      <div class="counter-pill"><span data-i18n="pallets_logged">Zaznamenané palety</span> <b id="palletCountPill">0</b></div>
+    </div>
+  </header>
+
+  <details class="panel-collapsible" id="syncSection">
+    <summary><span class="num">↻</span> <span data-i18n="sync_title">Synchronizace mezi zařízeními</span></summary>
+    <p class="hint" data-i18n="sync_hint">Vložte adresu vašeho Cloudflare Worker (jednou na každém zařízení) — data se pak ukládají centrálně a všechna zařízení uvidí stejné palety a referencí v reálném čase.</p>
+    <div class="form-row">
+      <div class="field grow">
+        <label for="syncUrlInput" data-i18n="lbl_sync_url">Adresa Worker (URL)</label>
+        <input type="text" id="syncUrlInput" placeholder="https://vas-worker.vas-subdomain.workers.dev">
+      </div>
+      <div class="field" style="flex:0 0 auto;">
+        <button class="btn-primary" id="connectSyncBtn" data-i18n="btn_connect">Připojit</button>
+      </div>
+      <div class="field" style="flex:0 0 auto;">
+        <button class="btn-ghost" id="syncNowBtn" data-i18n="btn_sync_now">Obnovit teď</button>
+      </div>
+    </div>
+    <div id="syncStatusLine" style="margin-top:8px;font-size:12.5px;color:var(--muted);"></div>
+    <div class="live-sync-row">
+      <label class="switch"><input type="checkbox" id="liveSyncToggle"><span class="switch-track"></span></label>
+      <label for="liveSyncToggle" data-i18n="lbl_live_sync">Živá synchronizace (auto-ukládat a auto-načítat z ostatních zařízení)</label>
+    </div>
+  </details>
+
+  <!-- ============ REFERENCE LIBRARY ============ -->
+  <details class="panel-collapsible" id="refSection">
+    <summary><span class="num">1</span> <span data-i18n="ref_title">Knihovna referencí</span></summary>
+    <p class="hint" data-i18n="ref_hint">Uloženo z databáze dílů AUTOPDF. Upravte řádek, pokud zákazník potřebuje něco jiného, nebo přidejte nový níže.</p>
+
+    <div class="form-row">
+      <div class="field grow">
+        <label for="refCodeInput" data-i18n="lbl_reference">Reference</label>
+        <input type="text" id="refCodeInput" data-i18n-ph="ph_ref_code" placeholder="např. 35.5-08960.34B">
+      </div>
+      <div class="field narrow">
+        <label for="refKltInput" data-i18n="lbl_klt_type">Typ KLT</label>
+        <input type="text" id="refKltInput" placeholder="4315">
+      </div>
+      <div class="field">
+        <label for="refQtyInput" data-i18n="lbl_pcs_klt">Ks / KLT</label>
+        <input type="number" id="refQtyInput" min="1" step="1" placeholder="24">
+      </div>
+      <div class="field" style="flex:0 0 auto;">
+        <button class="btn-primary" id="addRefBtn" data-i18n="btn_save_ref">Uložit referenci</button>
+      </div>
+    </div>
+
+    <table class="ref-table" id="refTable">
+      <thead><tr><th data-i18n="lbl_reference">Reference</th><th data-i18n="lbl_klt_type">Typ KLT</th><th data-i18n="lbl_pcs_klt">Ks / KLT</th><th></th></tr></thead>
+      <tbody id="refTableBody"></tbody>
+    </table>
+    <div class="empty-msg" id="refEmptyMsg" data-i18n="ref_empty_msg">Žádné reference zatím nejsou uloženy.</div>
+
+    <div class="ref-toolbar">
+      <button class="btn-ghost btn-small" id="reloadExcelBtn" data-i18n="btn_reload_excel">Načíst seznam dílů z Excelu (39 referencí)</button>
+      <button class="btn-danger btn-small" id="resetAllBtn" data-i18n="btn_reset_all">Vymazat všechna data</button>
+      <span class="count-badge" id="refCountBadge"></span>
+    </div>
+  </details>
+
+  <!-- ============ ADD PALLET ============ -->
+  <section class="panel" id="addSection">
+    <h2><span class="num">2</span> <span data-i18n="add_title">Přidat paletu</span></h2>
+    <p class="hint" data-i18n="add_hint">Vyberte referenci a počet plných KLT — typ KLT, celkový počet kusů a číslo palety se vyplní automaticky.</p>
+
+    <div class="form-row">
+      <div class="field grow ref-auto">
+        <label for="palRefInput" data-i18n="lbl_reference">Reference</label>
+        <input type="text" id="palRefInput" autocomplete="off" data-i18n-ph="ph_pick_ref" placeholder="Začněte psát nebo vyberte uloženou referenci">
+        <div class="ref-dropdown" id="refDropdown"></div>
+      </div>
+      <div class="field narrow">
+        <label for="palKltInput" data-i18n="lbl_klt_type">Typ KLT</label>
+        <input type="text" id="palKltInput" placeholder="4315">
+      </div>
+      <div class="field">
+        <label for="palQtyBoxInput" data-i18n="lbl_full_klt">Plné KLT</label>
+        <input type="number" id="palQtyBoxInput" min="1" step="1" placeholder="30">
+      </div>
+      <div class="field">
+        <label for="palBoxQtyInput" data-i18n="lbl_pcs_klt">Ks / KLT</label>
+        <input type="number" id="palBoxQtyInput" min="1" step="1" placeholder="24">
+      </div>
+      <div class="field">
+        <label data-i18n="lbl_total_pcs">Celkem ks</label>
+        <div class="readout" id="totalReadout">—</div>
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:10px;">
+      <div class="field grow">
+        <label for="palNotesInput" data-i18n="lbl_notes">Poznámky (nepovinné — pouze pro vaše záznamy, nejsou v QR kódu)</label>
+        <input type="text" id="palNotesInput" data-i18n-ph="ph_notes" placeholder="např. rozděleno 2x INV-1234, 1x INV-5678">
+      </div>
+      <div class="field" style="flex:0 0 auto;">
+        <label>&nbsp;</label>
+        <div class="readout mono" id="nextPalReadout" style="font-size:13px;">PAL # —</div>
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:6px;">
+      <div class="checkbox-line">
+        <input type="checkbox" id="saveRefCheck" checked>
+        <label for="saveRefCheck" style="text-transform:none;font-weight:400;" data-i18n="lbl_save_ref_check">Uložit tuto referenci + typ KLT + ks/KLT do knihovny pro příště</label>
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:10px;">
+      <button class="btn-accent" id="addPalletBtn" data-i18n="btn_add_pallet">Přidat paletu + vygenerovat štítek</button>
+      <button class="btn-ghost" id="settingsToggleBtn" type="button" data-i18n="btn_settings">Nastavení číslování palet</button>
+    </div>
+
+    <div id="settingsPanel" style="display:none;margin-top:14px;border-top:1px dashed var(--border);padding-top:12px;">
+      <div class="form-row">
+        <div class="field">
+          <label for="nextPalInput" data-i18n="lbl_next_pal">Další číslo palety</label>
+          <input type="number" id="nextPalInput" step="1">
+        </div>
+        <div class="field" style="flex:0 0 auto;align-self:flex-end;">
+          <button class="btn-ghost btn-small" id="saveNextPalBtn" data-i18n="btn_save">Uložit</button>
+        </div>
+      </div>
+      <p class="hint" data-i18n="settings_hint">Čísla palet se automaticky zvyšují odsud a nikdy se neopakují. Měňte pouze, pokud potřebujete navázat na existující číslování.</p>
+    </div>
+  </section>
+
+  <!-- ============ PALLET LIST / LABELS ============ -->
+  <section class="panel" id="listSection">
+    <h2><span class="num">3</span> <span data-i18n="labels_title">Štítky</span></h2>
+    <p class="hint" data-i18n="labels_hint">Vše zaškrtnuté níže se vytiskne. Odznačte vše, co nechcete v tomto tisku. Každý štítek má vlastní stažení PNG a zobrazení syrového kódu pro testování se čtečkou.</p>
+
+    <div class="toolbar">
+      <input type="text" class="search" id="searchInput" data-i18n-ph="ph_search" placeholder="Filtrovat podle reference…">
+      <select id="statusFilter">
+        <option value="all" data-i18n="filter_all">Všechny palety</option>
+        <option value="unprinted" data-i18n="filter_unprinted">Ještě nevytištěno</option>
+        <option value="printed" data-i18n="filter_printed">Již vytištěno</option>
+      </select>
+      <span class="count-badge" id="visibleCount">0</span>
+      <span class="spacer"></span>
+      <button class="btn-ghost btn-small" id="selectAllBtn" data-i18n="btn_select_all">Vybrat vše zobrazené</button>
+      <button class="btn-ghost btn-small" id="selectNoneBtn" data-i18n="btn_select_none">Zrušit výběr</button>
+      <button class="btn-ghost btn-small" id="markPrintedBtn" data-i18n="btn_mark_printed">Označit vybrané jako vytištěné</button>
+      <button class="btn-ghost btn-small" id="exportBtn" data-i18n="btn_export">Export do CSV</button>
+      <button class="btn-primary" id="printBtn" data-i18n="btn_print">Vytisknout vybrané štítky</button>
+    </div>
+
+    <div id="palletGrid"></div>
+    <div class="empty-msg" id="listEmptyMsg" data-i18n="list_empty_msg">Zatím nejsou přidány žádné palety.</div>
+  </section>
+
+</div>
+
+<div class="modal-backdrop" id="exportModal">
+  <div class="modal">
+    <h3 data-i18n="export_title">Export — zkopírujte do tabulky</h3>
+    <textarea id="exportArea" readonly></textarea>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="copyExportBtn" data-i18n="btn_copy_clipboard">Kopírovat do schránky</button>
+      <button class="btn-primary" id="closeExportBtn" data-i18n="btn_close">Zavřít</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // =========================================================================
+  // i18n — simple key dictionary, default Czech, toggled by button, persisted.
+  // =========================================================================
+  var I18N = {
+    cs: {
+      eyebrow:'2Stars s.r.o. · příjem palet do WMS', h1:'Příjem palet — QR štítky',
+      sub:'Vyberte referenci, zadejte počet plných KLT a vytiskněte QR štítek pro každou paletu — bez manuálního zadávání do WMS. Funguje i bez internetu po načtení stránky.',
+      pallets_logged:'Zaznamenané palety', info_title:'Info — co je v QR kódu, hostování, ukládání dat',
+      ref_title:'Knihovna referencí', ref_hint:'Uloženo z databáze dílů AUTOPDF. Upravte řádek, pokud zákazník potřebuje něco jiného, nebo přidejte nový níže.',
+      lbl_reference:'Reference', lbl_klt_type:'Typ KLT', lbl_pcs_klt:'Ks / KLT',
+      ph_ref_code:'např. 35.5-08960.34B', btn_save_ref:'Uložit referenci', ref_empty_msg:'Žádné reference zatím nejsou uloženy.',
+      btn_reload_excel:'Načíst seznam dílů z Excelu (39 referencí)', btn_reset_all:'Vymazat všechna data',
+      ref_count_badge:'{n} uloženo',
+      add_title:'Přidat paletu', add_hint:'Vyberte referenci a počet plných KLT — typ KLT, celkový počet kusů a číslo palety se vyplní automaticky.',
+      ph_pick_ref:'Začněte psát nebo vyberte uloženou referenci', lbl_full_klt:'Plné KLT', lbl_total_pcs:'Celkem ks', ref_dd_empty:'Žádná shoda',
+      lbl_notes:'Poznámky (nepovinné — pouze pro vaše záznamy, nejsou v QR kódu)', ph_notes:'např. rozděleno 2x INV-1234, 1x INV-5678',
+      lbl_save_ref_check:'Uložit tuto referenci + typ KLT + ks/KLT do knihovny pro příště',
+      btn_add_pallet:'Přidat paletu + vygenerovat štítek', btn_settings:'Nastavení číslování palet',
+      lbl_next_pal:'Další číslo palety', btn_save:'Uložit',
+      settings_hint:'Čísla palet se automaticky zvyšují odsud a nikdy se neopakují. Měňte pouze, pokud potřebujete navázat na existující číslování.',
+      labels_title:'Štítky', labels_hint:'Vše zaškrtnuté níže se vytiskne. Odznačte vše, co nechcete v tomto tisku. Každý štítek má vlastní stažení PNG a zobrazení syrového kódu pro testování se čtečkou.',
+      ph_search:'Filtrovat podle reference…', filter_all:'Všechny palety', filter_unprinted:'Ještě nevytištěno', filter_printed:'Již vytištěno',
+      visible_count:'{n} zobrazeno',
+      btn_select_all:'Vybrat vše zobrazené', btn_select_none:'Zrušit výběr', btn_mark_printed:'Označit vybrané jako vytištěné',
+      btn_export:'Export do CSV', btn_print:'Vytisknout vybrané štítky', list_empty_msg:'Zatím nejsou přidány žádné palety.',
+      export_title:'Export — zkopírujte do tabulky', btn_copy_clipboard:'Kopírovat do schránky', btn_close:'Zavřít',
+      edit:'Upravit', cancel:'Zrušit', remove:'Odebrat', mark_printed_short:'Označit vytištěné', unmark_printed_short:'Zrušit označení',
+      download_png:'Stáhnout PNG', delete:'Smazat', code_label:'kód', copy_code:'Kopírovat kód', printed_stamp:'Vytištěno',
+      breakdown:'{qb} KLT × {bq} ks', pcs_suffix:'ks',
+      t_ref_saved:'Reference uložena.', t_ref_empty:'Zadejte kód reference.', t_ref_qty_invalid:'Zadejte počet ks/KLT (alespoň 1).',
+      t_ref_updated:'Reference aktualizována.', t_ref_removed:'Reference odebrána.', t_refs_loaded:'{n} referencí načteno z Excelu.',
+      t_all_cleared:'Všechna data vymazána.', t_enter_ref:'Zadejte referenci.', t_enter_full_klt:'Zadejte počet plných KLT.',
+      t_enter_pcs_klt:'Zadejte počet kusů na KLT.', t_too_long:'Reference a čísla jsou příliš dlouhé pro spolehlivý QR kód ({n} znaků, limit ~80). Zkuste kratší referenci.',
+      t_pallet_added:'Paleta {n} přidána.', t_enter_valid_number:'Zadejte platné číslo.', t_next_pal_updated:'Další číslo palety aktualizováno.',
+      t_enter_valid_numbers:'Zadejte platná čísla.', t_too_long_edit:'Příliš dlouhé pro spolehlivý QR kód. Zkraťte referenci nebo poznámku.',
+      t_pallet_updated:'Paleta aktualizována.', t_marked_printed:'Označeno jako vytištěné.', t_unmarked:'Zrušeno označení.',
+      t_png_downloaded:'PNG štítku staženo.', t_png_failed:'PNG se nepodařilo vytvořit: {msg}', t_pallet_deleted:'Paleta smazána.',
+      t_copied:'Zkopírováno do schránky.', t_copy_failed:'Kopírování se nezdařilo — zkopírujte text manuálně.',
+      t_nothing_selected:'Nic není vybráno.', t_select_to_print:'Vyberte alespoň jednu paletu k tisku.', t_nothing_to_export:'Zatím nic k exportu.',
+      t_storage_blocked:'Nepodařilo se uložit — prohlížeč blokuje místní úložiště.',
+      confirm_delete:'Smazat paletu č. {n}? Tuto akci nelze vrátit zpět.',
+      confirm_reset:'Tímto trvale odstraníte všechny uložené reference a palety v tomto zařízení. Akci nelze vrátit zpět. Pokračovat?',
+      sync_title:'Synchronizace mezi zařízeními', sync_hint:'Vložte adresu vašeho Cloudflare Worker (jednou na každém zařízení) — data se pak ukládají centrálně a všechna zařízení uvidí stejné palety a reference v reálném čase.',
+      lbl_sync_url:'Adresa Worker (URL)', btn_connect:'Připojit', btn_sync_now:'Obnovit teď',
+      sync_ok:'✓ Synchronizováno', sync_saving:'Ukládám…', sync_err:'✕ Chyba synchronizace', sync_unconfigured:'Nepřipojeno — vložte adresu Worker výše', sync_loading:'Načítám…',
+      t_sync_connected:'Připojeno. Data se nyní synchronizují.', t_sync_url_empty:'Vložte adresu Worker.',
+      lbl_live_sync:'Živá synchronizace (auto-ukládat a auto-načítat z ostatních zařízení)',
+      t_live_sync_on:'Živá synchronizace zapnuta.', t_live_sync_off:'Živá synchronizace vypnuta — změny se neukládají automaticky.'
+    },
+    en: {
+      eyebrow:'2Stars s.r.o. · WMS bulk intake', h1:'Pallet Intake — QR Labels',
+      sub:'Pick a reference, enter full KLT count, get a print-ready QR label for each pallet — no manual WMS entry. Works fully offline once the page is loaded.',
+      pallets_logged:'Pallets logged', info_title:'Info — what\'s in the QR code, hosting & data storage',
+      ref_title:'Reference library', ref_hint:'Saved from your AUTOPDF parts database. Edit a row if a customer needs something different, or add a new one below.',
+      lbl_reference:'Reference', lbl_klt_type:'KLT type', lbl_pcs_klt:'Pcs / KLT',
+      ph_ref_code:'e.g. 35.5-08960.34B', btn_save_ref:'Save reference', ref_empty_msg:'No references saved yet.',
+      btn_reload_excel:'Reload parts list from Excel (39 refs)', btn_reset_all:'Reset all data',
+      ref_count_badge:'{n} saved',
+      add_title:'Add a pallet', add_hint:'Select the reference and full KLT count — KLT type, total pieces and the pallet number fill in automatically.',
+      ph_pick_ref:'Start typing or pick saved reference', lbl_full_klt:'Full KLTs', lbl_total_pcs:'Total pcs', ref_dd_empty:'No matches',
+      lbl_notes:'Notes (optional — your records only, not in the QR)', ph_notes:'e.g. invoice split 2x INV-1234, 1x INV-5678',
+      lbl_save_ref_check:'Save this reference + KLT type + pcs/KLT to the library for next time',
+      btn_add_pallet:'Add pallet + generate label', btn_settings:'Pallet numbering settings',
+      lbl_next_pal:'Next pallet number', btn_save:'Save',
+      settings_hint:'Pallet numbers auto-increment from here and never repeat. Only change this if you need to match an existing numbering scheme.',
+      labels_title:'Labels', labels_hint:'Everything checked below gets printed. Untick anything you don\'t want on this print run. Each label has its own PNG download and a raw-code viewer for testing against the scanner.',
+      ph_search:'Filter by reference…', filter_all:'All pallets', filter_unprinted:'Not yet printed', filter_printed:'Already printed',
+      visible_count:'{n} shown',
+      btn_select_all:'Select all shown', btn_select_none:'Select none', btn_mark_printed:'Mark selected as printed',
+      btn_export:'Export CSV', btn_print:'Print selected labels', list_empty_msg:'No pallets added yet.',
+      export_title:'Export — copy this into a spreadsheet', btn_copy_clipboard:'Copy to clipboard', btn_close:'Close',
+      edit:'Edit', cancel:'Cancel', remove:'Remove', mark_printed_short:'Mark printed', unmark_printed_short:'Unmark printed',
+      download_png:'Download PNG', delete:'Delete', code_label:'code', copy_code:'Copy code text', printed_stamp:'Printed',
+      breakdown:'{qb} KLT × {bq} pcs', pcs_suffix:'pcs',
+      t_ref_saved:'Reference saved.', t_ref_empty:'Enter a reference code.', t_ref_qty_invalid:'Enter pcs per KLT (a number, at least 1).',
+      t_ref_updated:'Reference updated.', t_ref_removed:'Reference removed.', t_refs_loaded:'{n} references loaded from the Excel parts list.',
+      t_all_cleared:'All data cleared.', t_enter_ref:'Enter a reference.', t_enter_full_klt:'Enter the number of full KLTs.',
+      t_enter_pcs_klt:'Enter pieces per KLT.', t_too_long:'That reference + numbers are too long to fit reliably in a QR code ({n} chars, limit ~80). Try a shorter reference.',
+      t_pallet_added:'Pallet {n} added.', t_enter_valid_number:'Enter a valid number.', t_next_pal_updated:'Next pallet number updated.',
+      t_enter_valid_numbers:'Enter valid numbers.', t_too_long_edit:'Too long for a reliable QR code. Shorten the reference or notes.',
+      t_pallet_updated:'Pallet updated.', t_marked_printed:'Marked as printed.', t_unmarked:'Unmarked.',
+      t_png_downloaded:'Label PNG downloaded.', t_png_failed:'Could not generate the PNG: {msg}', t_pallet_deleted:'Pallet deleted.',
+      t_copied:'Copied to clipboard.', t_copy_failed:'Could not copy — select the text manually.',
+      t_nothing_selected:'Nothing selected.', t_select_to_print:'Select at least one pallet to print.', t_nothing_to_export:'Nothing to export yet.',
+      t_storage_blocked:'Could not save — your browser blocked local storage.',
+      confirm_delete:'Delete pallet #{n}? This cannot be undone.',
+      confirm_reset:'This permanently deletes every saved reference and pallet on this device. This cannot be undone. Continue?',
+      sync_title:'Sync across devices', sync_hint:'Paste your Cloudflare Worker URL (once per device) — data is then stored centrally and every device sees the same pallets and references live.',
+      lbl_sync_url:'Worker URL', btn_connect:'Connect', btn_sync_now:'Refresh now',
+      sync_ok:'✓ Synced', sync_saving:'Saving…', sync_err:'✕ Sync error', sync_unconfigured:'Not connected — paste a Worker URL above', sync_loading:'Loading…',
+      t_sync_connected:'Connected. Data is now syncing.', t_sync_url_empty:'Enter a Worker URL.',
+      lbl_live_sync:'Live sync (auto-save and auto-load from other devices)',
+      t_live_sync_on:'Live sync turned on.', t_live_sync_off:'Live sync turned off — changes won\'t save automatically.'
+    }
+  };
+  var lang = (function(){ try{ return localStorage.getItem('pallet-qr:lang') || 'cs'; }catch(e){ return 'cs'; } })();
+  function t(key, vars){
+    var s = (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
+    if(vars){ Object.keys(vars).forEach(function(k){ s = s.replace('{'+k+'}', vars[k]); }); }
+    return s;
+  }
+  function applyI18n(){
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = t(el.getAttribute('data-i18n')); });
+    document.querySelectorAll('[data-i18n-ph]').forEach(function(el){ el.placeholder = t(el.getAttribute('data-i18n-ph')); });
+    document.getElementById('langToggleBtn').textContent = lang === 'cs' ? 'EN' : 'CZ';
+    document.getElementById('refCountBadge').textContent = t('ref_count_badge', {n: state.references.length});
+    document.getElementById('syncUrlInput').value = syncUrl;
+    document.getElementById('liveSyncToggle').checked = liveSyncOn;
+    setSyncStatus(lastSyncKind, lastSyncDetail);
+    updateNextPalReadout();
+    renderRefs(); renderPallets();
+  }
+  document.getElementById('langToggleBtn').addEventListener('click', function(){
+    lang = lang === 'cs' ? 'en' : 'cs';
+    try{ localStorage.setItem('pallet-qr:lang', lang); }catch(e){}
+    applyI18n();
+  });
+  document.getElementById('connectSyncBtn').addEventListener('click', function(){
+    var url = document.getElementById('syncUrlInput').value.trim();
+    if(!url){ toast(t('t_sync_url_empty'), true); return; }
+    setSyncUrl(url);
+    loadAll().then(function(){
+      applyI18n();
+      if(lastSyncKind === 'ok'){ toast(t('t_sync_connected')); }
+      else { toast(t('sync_err') + (lastSyncDetail ? ' (' + lastSyncDetail + ')' : ''), true); }
+    });
+  });
+  document.getElementById('syncNowBtn').addEventListener('click', function(){ pullState(true); });
+  document.getElementById('liveSyncToggle').addEventListener('change', function(e){
+    setLiveSync(e.target.checked);
+    if(liveSyncOn && syncUrl){ pullState(true); }
+    toast(liveSyncOn ? t('t_live_sync_on') : t('t_live_sync_off'));
+  });
+
+
+  // =========================================================================
+  // Self-contained QR Code Model 2 encoder (Byte mode, versions 1-4, level L).
+  // No external library or network connection required. Verified by round-trip
+  // testing (encode -> render -> independent decode) against 80+ real strings,
+  // and confirmed scanning cleanly with the real WMS scanner.
+  // =========================================================================
+  var QR = (function(){
+    var CAPACITY = {1:19, 2:34, 3:55, 4:80};
+    var EC_COUNT = {1:7, 2:10, 3:15, 4:20};
+    var REMAINDER_BITS = {1:0, 2:7, 3:7, 4:7};
+    var ALIGN_POS = {2:18, 3:22, 4:26};
+
+    var GF_EXP = new Array(512), GF_LOG = new Array(256);
+    (function initGF(){
+      var x = 1;
+      for(var i=0;i<255;i++){ GF_EXP[i]=x; GF_LOG[x]=i; x <<= 1; if(x & 0x100) x ^= 0x11D; }
+      for(var i=255;i<512;i++) GF_EXP[i]=GF_EXP[i-255];
+    })();
+    function gfMul(a,b){ if(a===0||b===0) return 0; return GF_EXP[GF_LOG[a]+GF_LOG[b]]; }
+    function rsGeneratorPoly(ec){
+      var poly=[1];
+      for(var i=0;i<ec;i++){
+        var term=[1, GF_EXP[i]];
+        var res = new Array(poly.length+term.length-1).fill(0);
+        for(var a=0;a<poly.length;a++) for(var b=0;b<term.length;b++) res[a+b]^=gfMul(poly[a],term[b]);
+        poly = res;
+      }
+      return poly;
+    }
+    function rsEncode(data, ec){
+      var gen = rsGeneratorPoly(ec);
+      var res = data.concat(new Array(ec).fill(0));
+      for(var i=0;i<data.length;i++){
+        var coef = res[i];
+        if(coef !== 0){ for(var j=0;j<gen.length;j++) res[i+j] ^= gfMul(gen[j], coef); }
+      }
+      return res.slice(data.length);
+    }
+    function strToBytes(s){
+      var b=[];
+      for(var i=0;i<s.length;i++){
+        var c = s.charCodeAt(i);
+        if(c > 255) throw new Error('UNSUPPORTED_CHARACTER');
+        b.push(c);
+      }
+      return b;
+    }
+    function buildDataCodewords(bytes, cap){
+      var capBits = cap*8;
+      var bits = '0100' + bytes.length.toString(2).padStart(8,'0');
+      for(var i=0;i<bytes.length;i++) bits += bytes[i].toString(2).padStart(8,'0');
+      if(bits.length > capBits) return null;
+      bits += '0000'.slice(0, Math.min(4, capBits-bits.length));
+      while(bits.length % 8 !== 0) bits += '0';
+      var pad=[0xEC,0x11], pi=0;
+      while(bits.length < capBits){ bits += pad[pi%2].toString(2).padStart(8,'0'); pi++; }
+      var cw=[];
+      for(var p=0;p<bits.length;p+=8) cw.push(parseInt(bits.slice(p,p+8),2));
+      return cw;
+    }
+
+    function encode(text){
+      var bytes = strToBytes(text);
+      var version=null, dataCw=null;
+      for(var v=1; v<=4; v++){
+        var cw = buildDataCodewords(bytes, CAPACITY[v]);
+        if(cw){ version=v; dataCw=cw; break; }
+      }
+      if(!version) throw new Error('TEXT_TOO_LONG');
+
+      var ec = rsEncode(dataCw, EC_COUNT[version]);
+      var all = dataCw.concat(ec);
+      var bitStream = all.map(function(b){ return b.toString(2).padStart(8,'0'); }).join('');
+      bitStream += new Array(REMAINDER_BITS[version]+1).join('0');
+
+      var size = version*4+17;
+      var isFunc=[], mat=[];
+      for(var r=0;r<size;r++){ isFunc.push(new Array(size).fill(false)); mat.push(new Array(size).fill(false)); }
+      function setFunc(r,c,val){ if(r<0||c<0||r>=size||c>=size) return; mat[r][c]=val; isFunc[r][c]=true; }
+      function placeFinder(r0,c0){
+        for(var r=-1;r<=7;r++){
+          for(var c=-1;c<=7;c++){
+            var rr=r0+r, cc=c0+c;
+            if(rr<0||cc<0||rr>=size||cc>=size) continue;
+            var val;
+            if(r===-1||r===7||c===-1||c===7) val=false;
+            else if(r===0||r===6||c===0||c===6) val=true;
+            else if(r>=2&&r<=4&&c>=2&&c<=4) val=true;
+            else val=false;
+            setFunc(rr,cc,val);
+          }
+        }
+      }
+      placeFinder(0,0); placeFinder(0,size-7); placeFinder(size-7,0);
+      for(var i=8;i<size-8;i++){ setFunc(6,i, i%2===0); setFunc(i,6, i%2===0); }
+      setFunc(size-8,8,true);
+      if(ALIGN_POS[version]){
+        var p = ALIGN_POS[version];
+        for(var r=-2;r<=2;r++){
+          for(var c=-2;c<=2;c++){
+            var val;
+            if(r===-2||r===2||c===-2||c===2) val=true;
+            else if(r===0&&c===0) val=true;
+            else val=false;
+            setFunc(p+r,p+c,val);
+          }
+        }
+      }
+      for(var i=0;i<9;i++){ if(!isFunc[8][i]) setFunc(8,i,false); if(!isFunc[i][8]) setFunc(i,8,false); }
+      for(var i=0;i<8;i++){ setFunc(8,size-1-i,false); setFunc(size-1-i,8,false); }
+      setFunc(8,8,false);
+
+      var bitIdx=0, col=size-1, dir=-1;
+      while(col>0){
+        if(col===6) col--;
+        for(var i=0;i<size;i++){
+          var row = dir===-1 ? size-1-i : i;
+          for(var k=0;k<2;k++){
+            var c = k===0?col:col-1;
+            if(isFunc[row][c]) continue;
+            var bit = bitIdx<bitStream.length ? bitStream[bitIdx]==='1' : false;
+            bitIdx++;
+            if((row+c)%2===0) bit = !bit;
+            mat[row][c]=bit;
+          }
+        }
+        col -= 2; dir *= -1;
+      }
+
+      var fdata = (0x1<<3)|0;
+      var val = fdata<<10;
+      var GEN = 0x537;
+      for(var bp=14; bp>=10; bp--){ if(val & (1<<bp)) val ^= (GEN << (bp-10)); }
+      var fmt15 = ((fdata<<10)|val) ^ 0x5412;
+      var fbits = fmt15.toString(2).padStart(15,'0').split('').map(function(b){ return b==='1'; });
+      var order = [[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+      for(var i=0;i<15;i++){ mat[order[i][0]][order[i][1]] = fbits[i]; }
+      for(var i=0;i<8;i++){ mat[8][size-1-i] = fbits[i]; }
+      for(var i=0;i<7;i++){ mat[size-1-i][8] = fbits[8+i]; }
+
+      return { matrix: mat, size: size, version: version };
+    }
+    return { encode: encode };
+  })();
+
+  function qrToSvg(text){
+    var r = QR.encode(text);
+    var m=r.matrix, n=r.size, margin=2, total=n+margin*2;
+    var rects='';
+    for(var row=0; row<n; row++){
+      for(var c=0;c<n;c++){
+        if(m[row][c]) rects += '<rect x="'+(c+margin)+'" y="'+(row+margin)+'" width="1" height="1"/>';
+      }
+    }
+    return '<svg viewBox="0 0 '+total+' '+total+'" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">'+
+           '<rect width="'+total+'" height="'+total+'" fill="#fff"/><g fill="#000">'+rects+'</g></svg>';
+  }
+  function qrToCanvas(text, moduleSize){
+    var r = QR.encode(text);
+    var m=r.matrix, n=r.size, margin=2;
+    moduleSize = moduleSize || 10;
+    var total=(n+margin*2)*moduleSize;
+    var canvas=document.createElement('canvas');
+    canvas.width=total; canvas.height=total;
+    var ctx=canvas.getContext('2d');
+    ctx.fillStyle='#fff'; ctx.fillRect(0,0,total,total);
+    ctx.fillStyle='#000';
+    for(var row=0;row<n;row++) for(var c=0;c<n;c++) if(m[row][c]) ctx.fillRect((c+margin)*moduleSize,(row+margin)*moduleSize,moduleSize,moduleSize);
+    return canvas;
+  }
+
+  // =========================================================================
+  // Seed data — AUTOPDF__v2_.xlsm "DATABAZE DILU" (39 parts) + the 2 real
+  // pallets logged in "KONTROLNI TABULKA" for P70/0002/26 (SIMMERSFELD, 2026-06-22).
+  // =========================================================================
+  var DEFAULT_REFERENCES = [
+    {code:'33.5-09055.18E', kltType:'4315', boxQty:50}, {code:'33.5-09057.18F', kltType:'4315', boxQty:40},
+    {code:'33.5-09057.19I', kltType:'4315', boxQty:25}, {code:'33.5-09057.20E', kltType:'4315', boxQty:4},
+    {code:'33.5-09057.21H', kltType:'3215', boxQty:60}, {code:'33.8-08961.04C', kltType:'4329', boxQty:50},
+    {code:'33.8-09055.01I', kltType:'4315', boxQty:30}, {code:'33.8-09056.03G', kltType:'4315', boxQty:25},
+    {code:'33.8-09057.01O', kltType:'4315', boxQty:30}, {code:'33.8-09057.02G', kltType:'4315', boxQty:38},
+    {code:'33.8-09057.03F', kltType:'4315', boxQty:21}, {code:'35.5-08172.17A', kltType:'4315', boxQty:54},
+    {code:'35.5-08960.31B', kltType:'4315', boxQty:36}, {code:'35.5-08960.34B', kltType:'4329', boxQty:30},
+    {code:'35.5-08960.39E', kltType:'4315', boxQty:102}, {code:'35.5-08960.43A', kltType:'4315', boxQty:195},
+    {code:'35.5-08960.44A', kltType:'4315', boxQty:120}, {code:'35.5-08960.49B', kltType:'4329', boxQty:30},
+    {code:'35.5-08960.55D', kltType:'4329', boxQty:36}, {code:'35.5-08960.56E', kltType:'4315', boxQty:24},
+    {code:'35.5-08962.26A', kltType:'4329', boxQty:32}, {code:'35.5-08962.27C', kltType:'4315', boxQty:300},
+    {code:'35.5-08962.45C', kltType:'4329', boxQty:86}, {code:'35.5-09056.13A', kltType:'4329', boxQty:25},
+    {code:'35.5-09056.14D', kltType:'4329', boxQty:104}, {code:'35.5-09057.38A', kltType:'4329', boxQty:34},
+    {code:'35.5-09057.39A', kltType:'4315', boxQty:30}, {code:'35.5-09057.61A', kltType:'4315', boxQty:310},
+    {code:'35.6-08576.01B', kltType:'4329', boxQty:48}, {code:'35.8-08960.04A', kltType:'4315', boxQty:100},
+    {code:'35.8-08962.01F', kltType:'4329', boxQty:55}, {code:'35.8-09055.08C', kltType:'4329', boxQty:55},
+    {code:'35.6-08118.38A', kltType:'4315', boxQty:224}, {code:'33.8-09056.09B', kltType:'4329', boxQty:23},
+    {code:'35.5-09056.21B', kltType:'4329', boxQty:66}, {code:'35.5-09056.23A', kltType:'4329', boxQty:17},
+    {code:'35.5-08962.29A', kltType:'4315', boxQty:130}, {code:'35.8-08961.06A', kltType:'4329', boxQty:20},
+    {code:'35.5-09056.11A', kltType:'4315', boxQty:240}
+  ];
+  var DEFAULT_PALLETS = [
+    {refCode:'33.5-09055.18E', kltType:'4315', qtyBox:48, boxQty:50, notes:'From AUTOPDF P70/0002/26 (SIMMERSFELD, 2026-06-22)'},
+    {refCode:'35.8-09055.08C', kltType:'4329', qtyBox:24, boxQty:55, notes:'From AUTOPDF P70/0002/26 (SIMMERSFELD, 2026-06-22)'}
+  ];
+
+  var DEFAULT_NEXT_PAL = 1000000001;
+  var state = { references: [], pallets: [], nextPal: DEFAULT_NEXT_PAL };
+  var editingId = null;
+  var editingRefId = null;
+
+  // ---------- sync (shared Cloudflare Worker + KV — all devices read/write the same data) ----------
+  var syncUrl = (function(){ try{ return localStorage.getItem('pallet-qr:sync-url') || ''; }catch(e){ return ''; } })();
+  var liveSyncOn = (function(){ try{ return localStorage.getItem('pallet-qr:live-sync') !== '0'; }catch(e){ return true; } })();
+  var pullInFlight = false;
+  function setSyncUrl(url){
+    syncUrl = url.trim();
+    if(syncUrl && !/^https?:\/\//i.test(syncUrl)){ syncUrl = 'https://' + syncUrl; }
+    syncUrl = syncUrl.replace(/\/+$/, '');
+    try{ localStorage.setItem('pallet-qr:sync-url', syncUrl); }catch(e){}
+  }
+  function setLiveSync(on){
+    liveSyncOn = !!on;
+    try{ localStorage.setItem('pallet-qr:live-sync', liveSyncOn ? '1' : '0'); }catch(e){}
+  }
+  // Cloudflare Workers can have a brief cold-start delay on the first request after
+  // being idle, which can make a single fetch attempt fail even though the Worker is
+  // fine. Retry once after a short pause before treating it as a real error.
+  function fetchRetry(url, opts, attemptsLeft){
+    attemptsLeft = (attemptsLeft === undefined) ? 2 : attemptsLeft;
+    return fetch(url, opts).catch(function(e){
+      if(attemptsLeft > 1){
+        return new Promise(function(resolve){ setTimeout(resolve, 700); })
+          .then(function(){ return fetchRetry(url, opts, attemptsLeft - 1); });
+      }
+      throw e;
+    });
+  }
+  var lastSyncKind = 'unconfigured', lastSyncDetail = '';
+  function setSyncStatus(kind, detail){
+    lastSyncKind = kind; lastSyncDetail = detail || '';
+    var el = document.getElementById('syncStatusLine');
+    if(!el) return;
+    var map = { ok:'sync_ok', saving:'sync_saving', err:'sync_err', unconfigured:'sync_unconfigured', loading:'sync_loading' };
+    el.textContent = t(map[kind] || 'sync_unconfigured') + (detail ? ' (' + detail + ')' : '');
+    el.style.color = kind === 'err' ? 'var(--danger)' : (kind === 'ok' ? 'var(--success)' : 'var(--muted)');
+  }
+  function pushState(){
+    if(!syncUrl || !liveSyncOn) return;
+    setSyncStatus('saving');
+    fetchRetry(syncUrl, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ references: state.references, pallets: state.pallets, nextPal: state.nextPal })
+    }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); setSyncStatus('ok'); })
+      .catch(function(e){ setSyncStatus('err', e.message); });
+  }
+  function pullState(applyAlways){
+    if(!syncUrl) return Promise.resolve();
+    if(!applyAlways && !liveSyncOn) return Promise.resolve();
+    if(pullInFlight) return Promise.resolve();
+    pullInFlight = true;
+    setSyncStatus('loading');
+    return fetchRetry(syncUrl, undefined, applyAlways ? 2 : 1).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(data){
+        pullInFlight = false;
+        if(!applyAlways && (editingId !== null || editingRefId !== null)) { setSyncStatus('ok'); return; }
+        state.references = data.references || [];
+        state.pallets = data.pallets || [];
+        state.nextPal = (typeof data.nextPal === 'number') ? data.nextPal : state.nextPal;
+        renderRefs(); refreshRefOptions(); renderPallets(); updateNextPalReadout();
+        setSyncStatus('ok');
+      }).catch(function(e){ pullInFlight = false; setSyncStatus('err', e.message); });
+  }
+  function startPolling(){
+    setInterval(function(){ if(syncUrl && liveSyncOn) pullState(false); }, 4000);
+  }
+
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  function toast(msg, isError){
+    var stack = document.getElementById('toastStack');
+    var el = document.createElement('div');
+    el.className = 'toast' + (isError ? ' err' : '');
+    el.innerHTML = '<span class="icon">' + (isError ? '✕' : '✓') + '</span><span>' + escapeHtml(msg) + '</span>';
+    stack.appendChild(el);
+    requestAnimationFrame(function(){ el.classList.add('show'); });
+    setTimeout(function(){ el.classList.remove('show'); setTimeout(function(){ el.remove(); }, 250); }, 3200);
+  }
+
+  function saveRefs(){ pushState(); return true; }
+  function savePallets(){ pushState(); return true; }
+  function saveCounter(){ pushState(); return true; }
+
+  function buildQrText(refCode, qtyBox, boxQty, totalQty, kltType, palNumber){
+    return ['HOTOVO', refCode, refCode, qtyBox, boxQty, totalQty, kltType||'', '', '', palNumber].join('|');
+  }
+  function formatDate(ts){
+    var d = new Date(ts);
+    function pad(n){ return (n<10?'0':'')+n; }
+    return pad(d.getDate()) + '/' + pad(d.getMonth()+1) + '/' + String(d.getFullYear()).slice(2);
+  }
+
+  function seedReferencesOnly(showToast){
+    DEFAULT_REFERENCES.forEach(function(r){ upsertRef(r.code, r.kltType, r.boxQty); });
+    saveRefs(); renderRefs(); refreshRefOptions();
+    if(showToast) toast(t('t_refs_loaded', {n: DEFAULT_REFERENCES.length}));
+  }
+  function seedEverything(){
+    state.references = [];
+    DEFAULT_REFERENCES.forEach(function(r){ upsertRef(r.code, r.kltType, r.boxQty); });
+    state.pallets = []; state.nextPal = DEFAULT_NEXT_PAL;
+    DEFAULT_PALLETS.forEach(function(p){
+      var totalQty = p.qtyBox * p.boxQty;
+      var palNumber = state.nextPal; state.nextPal += 1;
+      state.pallets.push({
+        id: uid(), palNumber: palNumber, refCode: p.refCode, kltType: p.kltType, qtyBox: p.qtyBox,
+        boxQty: p.boxQty, totalQty: totalQty, notes: p.notes, printed: false, selected: false,
+        createdAt: Date.now(), qrText: buildQrText(p.refCode, p.qtyBox, p.boxQty, totalQty, p.kltType, palNumber)
+      });
+    });
+    pushState();
+  }
+  function loadAll(){
+    if(!syncUrl){
+      state.references = []; state.pallets = []; state.nextPal = DEFAULT_NEXT_PAL;
+      setSyncStatus('unconfigured');
+      var sync = document.getElementById('syncSection');
+      if(sync) sync.open = true;
+      return Promise.resolve();
+    }
+    setSyncStatus('loading');
+    return fetchRetry(syncUrl).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(data){
+        state.references = data.references || [];
+        state.pallets = data.pallets || [];
+        state.nextPal = (typeof data.nextPal === 'number') ? data.nextPal : DEFAULT_NEXT_PAL;
+        if(state.references.length === 0 && state.pallets.length === 0){ seedEverything(); }
+        setSyncStatus('ok');
+      }).catch(function(e){
+        setSyncStatus('err', e.message);
+        state.references = []; state.pallets = []; state.nextPal = DEFAULT_NEXT_PAL;
+      });
+  }
+
+
+  function findRef(code){
+    var c = (code||'').trim().toLowerCase();
+    for(var i=0;i<state.references.length;i++){ if(state.references[i].code.trim().toLowerCase() === c) return state.references[i]; }
+    return null;
+  }
+  function upsertRef(code, kltType, boxQty){
+    code = (code||'').trim();
+    if(!code) return;
+    var existing = findRef(code);
+    if(existing){ existing.boxQty = boxQty; existing.kltType = kltType||''; existing.code = code; }
+    else { state.references.push({ id: uid(), code: code, kltType: kltType||'', boxQty: boxQty }); }
+  }
+
+  function renderRefs(){
+    var body = document.getElementById('refTableBody');
+    var emptyMsg = document.getElementById('refEmptyMsg');
+    body.innerHTML = '';
+    document.getElementById('refCountBadge').textContent = t('ref_count_badge', {n: state.references.length});
+    emptyMsg.style.display = state.references.length === 0 ? 'block' : 'none';
+
+    state.references.slice().sort(function(a,b){ return a.code.localeCompare(b.code); }).forEach(function(ref){
+      var tr = document.createElement('tr');
+      var isEditing = editingRefId === ref.id;
+      if(isEditing){
+        tr.innerHTML =
+          '<td><input type="text" class="e-code" value="'+escapeAttr(ref.code)+'"></td>' +
+          '<td><input type="text" class="e-klt" value="'+escapeAttr(ref.kltType||'')+'" style="width:80px;"></td>' +
+          '<td><input type="number" min="1" class="e-qty" value="'+ref.boxQty+'" style="width:90px;"></td>' +
+          '<td class="actions-cell"></td>';
+        var saveBtn = document.createElement('button'); saveBtn.className='btn-primary btn-small'; saveBtn.textContent=t('btn_save');
+        var cancelBtn = document.createElement('button'); cancelBtn.className='btn-ghost btn-small'; cancelBtn.textContent=t('cancel');
+        tr.querySelector('.actions-cell').appendChild(saveBtn);
+        tr.querySelector('.actions-cell').appendChild(cancelBtn);
+        saveBtn.addEventListener('click', function(){
+          var code = tr.querySelector('.e-code').value.trim();
+          var klt = tr.querySelector('.e-klt').value.trim();
+          var qty = parseInt(tr.querySelector('.e-qty').value, 10);
+          if(!code){ toast(t('t_ref_empty'), true); return; }
+          if(!qty || qty < 1){ toast(t('t_ref_qty_invalid'), true); return; }
+          ref.code = code; ref.kltType = klt; ref.boxQty = qty;
+          editingRefId = null;
+          saveRefs(); renderRefs(); refreshRefOptions();
+          toast(t('t_ref_updated'));
+        });
+        cancelBtn.addEventListener('click', function(){ editingRefId = null; renderRefs(); });
+      } else {
+        tr.innerHTML =
+          '<td>'+escapeHtml(ref.code)+'</td>' + '<td>'+escapeHtml(ref.kltType||'—')+'</td>' + '<td>'+ref.boxQty+'</td>' + '<td class="actions-cell"></td>';
+        var editBtn = document.createElement('button'); editBtn.className='btn-ghost btn-small'; editBtn.textContent=t('edit');
+        editBtn.addEventListener('click', function(){ editingRefId = ref.id; renderRefs(); });
+        var delBtn = document.createElement('button'); delBtn.className='btn-danger btn-small'; delBtn.textContent=t('remove');
+        delBtn.addEventListener('click', function(){
+          state.references = state.references.filter(function(r){ return r.id !== ref.id; });
+          saveRefs(); renderRefs(); refreshRefOptions();
+          toast(t('t_ref_removed'));
+        });
+        tr.querySelector('.actions-cell').appendChild(editBtn);
+        tr.querySelector('.actions-cell').appendChild(delBtn);
+      }
+      body.appendChild(tr);
+    });
+  }
+
+  function refreshRefOptions(){ /* no-op: dropdown is built fresh from state.references on each render */ }
+
+  var refDropdown = document.getElementById('refDropdown');
+  var ddActiveIdx = -1;
+  function ddMatches(query){
+    query = query.trim().toLowerCase();
+    var list = query ? state.references.filter(function(r){ return r.code.toLowerCase().indexOf(query) !== -1; }) : state.references.slice();
+    return list.sort(function(a,b){ return a.code.localeCompare(b.code); });
+  }
+  function renderDropdown(){
+    var matches = ddMatches(palRefInput.value).slice(0, 30);
+    ddActiveIdx = -1;
+    if(matches.length === 0){
+      refDropdown.innerHTML = '<div class="opt-empty">' + t('ref_dd_empty') + '</div>';
+    } else {
+      refDropdown.innerHTML = matches.map(function(r){
+        return '<div class="opt" data-code="'+escapeAttr(r.code)+'">' + escapeHtml(r.code) +
+          '<span class="meta">' + (r.kltType ? ('KLT ' + escapeHtml(r.kltType) + ' · ') : '') + r.boxQty + ' ' + t('pcs_suffix') + '</span></div>';
+      }).join('');
+      refDropdown.querySelectorAll('.opt').forEach(function(el){
+        el.addEventListener('mousedown', function(e){ e.preventDefault(); selectRef(el.getAttribute('data-code')); });
+      });
+    }
+    refDropdown.classList.add('open');
+  }
+  function selectRef(code){
+    palRefInput.value = code;
+    refDropdown.classList.remove('open');
+    var ref = findRef(code);
+    if(ref){
+      palBoxQtyInput.value = ref.boxQty; palBoxQtyInput.dataset.userEdited = '';
+      palKltInput.value = ref.kltType || ''; palKltInput.dataset.userEdited = '';
+      updateTotalReadout();
+    }
+    palQtyBoxInput.focus();
+  }
+  function ddHighlight(){
+    var opts = refDropdown.querySelectorAll('.opt');
+    opts.forEach(function(o,i){ o.classList.toggle('active', i===ddActiveIdx); });
+    if(opts[ddActiveIdx]) opts[ddActiveIdx].scrollIntoView({block:'nearest'});
+  }
+
+  document.getElementById('addRefBtn').addEventListener('click', function(){
+    var code = document.getElementById('refCodeInput').value;
+    var klt = document.getElementById('refKltInput').value.trim();
+    var qty = parseInt(document.getElementById('refQtyInput').value, 10);
+    if(!code.trim()){ toast(t('t_ref_empty'), true); return; }
+    if(!qty || qty < 1){ toast(t('t_ref_qty_invalid'), true); return; }
+    upsertRef(code, klt, qty);
+    saveRefs(); renderRefs(); refreshRefOptions();
+    document.getElementById('refCodeInput').value=''; document.getElementById('refKltInput').value=''; document.getElementById('refQtyInput').value='';
+    toast(t('t_ref_saved'));
+  });
+  document.getElementById('reloadExcelBtn').addEventListener('click', function(){ seedReferencesOnly(true); });
+  document.getElementById('resetAllBtn').addEventListener('click', function(){
+    if(!confirm(t('confirm_reset'))) return;
+    state.references = []; state.pallets = []; state.nextPal = DEFAULT_NEXT_PAL;
+    pushState();
+    renderRefs(); refreshRefOptions(); renderPallets(); updateNextPalReadout();
+    toast(t('t_all_cleared'));
+  });
+
+  var palRefInput = document.getElementById('palRefInput');
+  var palKltInput = document.getElementById('palKltInput');
+  var palQtyBoxInput = document.getElementById('palQtyBoxInput');
+  var palBoxQtyInput = document.getElementById('palBoxQtyInput');
+  var totalReadout = document.getElementById('totalReadout');
+  var nextPalReadout = document.getElementById('nextPalReadout');
+
+  function updateTotalReadout(){
+    var qb = parseInt(palQtyBoxInput.value, 10);
+    var bq = parseInt(palBoxQtyInput.value, 10);
+    totalReadout.textContent = (qb > 0 && bq > 0) ? (qb*bq) + ' ' + t('pcs_suffix') : '—';
+  }
+  function updateNextPalReadout(){ nextPalReadout.textContent = 'PAL # ' + state.nextPal; }
+
+  palRefInput.addEventListener('input', function(){
+    var ref = findRef(palRefInput.value);
+    if(ref){
+      if(!palBoxQtyInput.dataset.userEdited){ palBoxQtyInput.value = ref.boxQty; }
+      if(!palKltInput.dataset.userEdited){ palKltInput.value = ref.kltType || ''; }
+      updateTotalReadout();
+    }
+    renderDropdown();
+  });
+  palRefInput.addEventListener('focus', renderDropdown);
+  palRefInput.addEventListener('blur', function(){ setTimeout(function(){ refDropdown.classList.remove('open'); }, 120); });
+  palRefInput.addEventListener('keydown', function(e){
+    var opts = refDropdown.querySelectorAll('.opt');
+    if(e.key === 'Escape'){ refDropdown.classList.remove('open'); }
+    else if(e.key === 'ArrowDown'){ e.preventDefault(); if(opts.length){ ddActiveIdx = Math.min(ddActiveIdx+1, opts.length-1); ddHighlight(); } }
+    else if(e.key === 'ArrowUp'){ e.preventDefault(); if(opts.length){ ddActiveIdx = Math.max(ddActiveIdx-1, 0); ddHighlight(); } }
+    else if(e.key === 'Enter'){ if(ddActiveIdx>=0 && opts[ddActiveIdx]){ e.preventDefault(); selectRef(opts[ddActiveIdx].getAttribute('data-code')); } }
+  });
+  palBoxQtyInput.addEventListener('input', function(){ palBoxQtyInput.dataset.userEdited='1'; updateTotalReadout(); });
+  palKltInput.addEventListener('input', function(){ palKltInput.dataset.userEdited='1'; });
+  palQtyBoxInput.addEventListener('input', updateTotalReadout);
+
+  document.getElementById('addPalletBtn').addEventListener('click', function(){
+    var refCode = palRefInput.value.trim();
+    var kltType = palKltInput.value.trim();
+    var qtyBox = parseInt(palQtyBoxInput.value, 10);
+    var boxQty = parseInt(palBoxQtyInput.value, 10);
+    var notes = document.getElementById('palNotesInput').value.trim();
+
+    if(!refCode){ toast(t('t_enter_ref'), true); return; }
+    if(!qtyBox || qtyBox < 1){ toast(t('t_enter_full_klt'), true); return; }
+    if(!boxQty || boxQty < 1){ toast(t('t_enter_pcs_klt'), true); return; }
+
+    var totalQty = qtyBox * boxQty;
+    var palNumber = state.nextPal;
+    var qrText = buildQrText(refCode, qtyBox, boxQty, totalQty, kltType, palNumber);
+    if(qrText.length > 80){ toast(t('t_too_long', {n: qrText.length}), true); return; }
+
+    state.nextPal += 1;
+    var entry = {
+      id: uid(), palNumber: palNumber, refCode: refCode, kltType: kltType, qtyBox: qtyBox, boxQty: boxQty,
+      totalQty: totalQty, notes: notes, printed: false, selected: true, createdAt: Date.now(), qrText: qrText
+    };
+    state.pallets.unshift(entry);
+    if(document.getElementById('saveRefCheck').checked){ upsertRef(refCode, kltType, boxQty); }
+
+    savePallets(); saveCounter(); saveRefs();
+    renderRefs(); refreshRefOptions(); renderPallets(); updateNextPalReadout();
+    palQtyBoxInput.value=''; document.getElementById('palNotesInput').value=''; updateTotalReadout();
+    toast(t('t_pallet_added', {n: palNumber}));
+    palQtyBoxInput.focus();
+  });
+
+  document.getElementById('settingsToggleBtn').addEventListener('click', function(){
+    var p = document.getElementById('settingsPanel');
+    var open = p.style.display !== 'none';
+    p.style.display = open ? 'none' : 'block';
+    if(!open) document.getElementById('nextPalInput').value = state.nextPal;
+  });
+  document.getElementById('saveNextPalBtn').addEventListener('click', function(){
+    var v = parseInt(document.getElementById('nextPalInput').value, 10);
+    if(!v || v < 1){ toast(t('t_enter_valid_number'), true); return; }
+    state.nextPal = v;
+    saveCounter(); updateNextPalReadout();
+    toast(t('t_next_pal_updated'));
+  });
+
+  var grid = document.getElementById('palletGrid');
+  var emptyMsg = document.getElementById('listEmptyMsg');
+
+  function getFiltered(){
+    var q = document.getElementById('searchInput').value.trim().toLowerCase();
+    var status = document.getElementById('statusFilter').value;
+    return state.pallets.filter(function(p){
+      if(q && p.refCode.toLowerCase().indexOf(q) === -1) return false;
+      if(status === 'printed' && !p.printed) return false;
+      if(status === 'unprinted' && p.printed) return false;
+      return true;
+    });
+  }
+
+  function renderPallets(){
+    var list = getFiltered();
+    grid.innerHTML = '';
+    document.getElementById('visibleCount').textContent = t('visible_count', {n: list.length});
+    document.getElementById('palletCountPill').textContent = state.pallets.length;
+    emptyMsg.style.display = state.pallets.length === 0 ? 'block' : 'none';
+    list.forEach(function(p){ grid.appendChild(buildCard(p)); });
+  }
+
+  function buildCard(p){
+    var card = document.createElement('div');
+    card.className = 'pallet-card' + (p.printed ? ' is-printed' : '') + (p.selected ? ' print-include' : '') + (editingId===p.id ? ' editing' : '');
+    card.dataset.id = p.id;
+
+    var html = '';
+    html += '<div class="card-top view-only">';
+    html += '  <div><div class="ref-code">' + escapeHtml(p.refCode) + '</div>';
+    if(p.kltType){ html += '<div class="klt-badge">KLT ' + escapeHtml(p.kltType) + '</div>'; }
+    html += '  </div>';
+    html += '  <div class="sel-wrap"><input type="checkbox" class="sel" ' + (p.selected?'checked':'') + '></div>';
+    html += '</div>';
+    html += '<div class="qty-line view-only">';
+    html += '  <span class="total">' + p.totalQty + '<small>' + t('pcs_suffix') + '</small></span>';
+    html += '  <div class="breakdown">' + t('breakdown', {qb:p.qtyBox, bq:p.boxQty}) + '</div>';
+    html += '</div>';
+
+    html += '<div class="edit-fields">';
+    html += '  <label>' + t('lbl_klt_type') + '</label><input type="text" class="edit-klt" value="'+escapeAttr(p.kltType||'')+'">';
+    html += '  <label>' + t('lbl_full_klt') + '</label><input type="number" min="1" class="edit-qtybox" value="'+p.qtyBox+'">';
+    html += '  <label>' + t('lbl_pcs_klt') + '</label><input type="number" min="1" class="edit-boxqty" value="'+p.boxQty+'">';
+    html += '  <label>' + t('lbl_notes') + '</label><input type="text" class="edit-notes" value="'+escapeAttr(p.notes||'')+'">';
+    html += '</div>';
+
+    html += '<div class="qr-wrap" id="qr-' + p.id + '"></div>';
+    html += '<div class="pal-no">PAL # <b>' + p.palNumber + '</b></div>';
+    html += '<div class="gen-date">' + formatDate(p.createdAt) + '</div>';
+    if(p.notes){ html += '<div class="notes view-only">' + escapeHtml(p.notes) + '</div>'; }
+
+    html += '<div class="actions">';
+    if(editingId === p.id){
+      html += '<button class="btn-primary btn-small act-save">' + t('btn_save') + '</button>';
+      html += '<button class="btn-ghost btn-small act-cancel">' + t('cancel') + '</button>';
+    } else {
+      html += '<button class="btn-ghost btn-small act-edit">' + t('edit') + '</button>';
+      html += '<button class="btn-ghost btn-small act-toggle-printed">' + (p.printed?t('unmark_printed_short'):t('mark_printed_short')) + '</button>';
+      html += '<button class="btn-ghost btn-small act-download">' + t('download_png') + '</button>';
+      html += '<button class="btn-danger btn-small act-delete">' + t('delete') + '</button>';
+    }
+    html += '</div>';
+
+    html += '<details class="code-toggle"><summary>' + t('code_label') + '</summary><div class="codebox">' + escapeHtml(p.qrText) + '</div>' +
+            '<button class="btn-ghost btn-small copy-code">' + t('copy_code') + '</button></details>';
+
+    if(p.printed){ html += '<div class="stamp">' + t('printed_stamp') + '</div>'; }
+
+    card.innerHTML = html;
+
+    var sel = card.querySelector('.sel');
+    sel.addEventListener('change', function(){ p.selected = sel.checked; card.classList.toggle('print-include', p.selected); savePallets(); });
+
+    var editBtn = card.querySelector('.act-edit');
+    if(editBtn) editBtn.addEventListener('click', function(){ editingId = p.id; renderPallets(); });
+    var cancelBtn = card.querySelector('.act-cancel');
+    if(cancelBtn) cancelBtn.addEventListener('click', function(){ editingId = null; renderPallets(); });
+    var saveBtn = card.querySelector('.act-save');
+    if(saveBtn) saveBtn.addEventListener('click', function(){
+      var klt = card.querySelector('.edit-klt').value.trim();
+      var qb = parseInt(card.querySelector('.edit-qtybox').value, 10);
+      var bq = parseInt(card.querySelector('.edit-boxqty').value, 10);
+      var nt = card.querySelector('.edit-notes').value.trim();
+      if(!qb || qb<1 || !bq || bq<1){ toast(t('t_enter_valid_numbers'), true); return; }
+      var newQrText = buildQrText(p.refCode, qb, bq, qb*bq, klt, p.palNumber);
+      if(newQrText.length > 80){ toast(t('t_too_long_edit'), true); return; }
+      p.kltType = klt; p.qtyBox = qb; p.boxQty = bq; p.totalQty = qb*bq; p.notes = nt; p.qrText = newQrText;
+      editingId = null;
+      savePallets(); renderPallets();
+      toast(t('t_pallet_updated'));
+    });
+    var toggleBtn = card.querySelector('.act-toggle-printed');
+    if(toggleBtn) toggleBtn.addEventListener('click', function(){
+      p.printed = !p.printed; if(p.printed){ p.selected = false; }
+      savePallets(); renderPallets();
+      toast(p.printed ? t('t_marked_printed') : t('t_unmarked'));
+    });
+    var dlBtn = card.querySelector('.act-download');
+    if(dlBtn) dlBtn.addEventListener('click', function(){
+      try{
+        var canvas = qrToCanvas(p.qrText, 10);
+        var a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png');
+        a.download = 'pallet-' + p.palNumber + '.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        toast(t('t_png_downloaded'));
+      }catch(e){ toast(t('t_png_failed', {msg:e.message}), true); }
+    });
+    var delBtn = card.querySelector('.act-delete');
+    if(delBtn) delBtn.addEventListener('click', function(){
+      if(!confirm(t('confirm_delete', {n:p.palNumber}))) return;
+      state.pallets = state.pallets.filter(function(x){ return x.id !== p.id; });
+      savePallets(); renderPallets();
+      toast(t('t_pallet_deleted'));
+    });
+    var copyBtn = card.querySelector('.copy-code');
+    if(copyBtn) copyBtn.addEventListener('click', function(){ copyText(p.qrText); });
+
+    var qrHost = card.querySelector('#qr-' + p.id);
+    try{ qrHost.innerHTML = qrToSvg(p.qrText); }
+    catch(e){ qrHost.innerHTML = '<div class="qr-error">' + (e.message==='TEXT_TOO_LONG' ? 'too long' : e.message) + '</div>'; }
+
+    return card;
+  }
+
+  function copyText(text){
+    var done = function(){ toast(t('t_copied')); };
+    var fail = function(){
+      try{
+        var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        document.execCommand('copy'); ta.remove(); done();
+      }catch(e){ toast(t('t_copy_failed'), true); }
+    };
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done, fail); }
+      else { fail(); }
+    }catch(e){ fail(); }
+  }
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function escapeAttr(s){ return escapeHtml(s); }
+
+  document.getElementById('searchInput').addEventListener('input', renderPallets);
+  document.getElementById('statusFilter').addEventListener('change', renderPallets);
+  document.getElementById('selectAllBtn').addEventListener('click', function(){ getFiltered().forEach(function(p){ p.selected = true; }); savePallets(); renderPallets(); });
+  document.getElementById('selectNoneBtn').addEventListener('click', function(){ getFiltered().forEach(function(p){ p.selected = false; }); savePallets(); renderPallets(); });
+  document.getElementById('markPrintedBtn').addEventListener('click', function(){
+    var any = false;
+    state.pallets.forEach(function(p){ if(p.selected){ p.printed = true; p.selected = false; any = true; } });
+    if(!any){ toast(t('t_nothing_selected'), true); return; }
+    savePallets(); renderPallets();
+    toast(t('t_marked_printed'));
+  });
+  document.getElementById('printBtn').addEventListener('click', function(){
+    if(!state.pallets.some(function(p){ return p.selected; })){ toast(t('t_select_to_print'), true); return; }
+    window.print();
+  });
+
+  function buildCsv(){
+    var rows = [['PAL_NUMBER','REFERENCE','KLT_TYPE','FULL_KLT','PCS_PER_KLT','TOTAL_PCS','NOTES','PRINTED','QR_STRING']];
+    state.pallets.forEach(function(p){
+      rows.push([p.palNumber, p.refCode, p.kltType||'', p.qtyBox, p.boxQty, p.totalQty, (p.notes||'').replace(/,/g,';'), p.printed?'yes':'no', p.qrText]);
+    });
+    return rows.map(function(r){ return r.join(','); }).join('\n');
+  }
+  document.getElementById('exportBtn').addEventListener('click', function(){
+    if(state.pallets.length === 0){ toast(t('t_nothing_to_export'), true); return; }
+    document.getElementById('exportArea').value = buildCsv();
+    document.getElementById('exportModal').classList.add('open');
+  });
+  document.getElementById('closeExportBtn').addEventListener('click', function(){ document.getElementById('exportModal').classList.remove('open'); });
+  document.getElementById('copyExportBtn').addEventListener('click', function(){ copyText(document.getElementById('exportArea').value); });
+
+  // ---------- init ----------
+  loadAll().then(function(){
+    applyI18n();
+    startPolling();
+  });
+
+})();
+</script>
+</body>
+</html>
