@@ -179,6 +179,8 @@
     #listSection{border:none;padding:0;}
     #listSection > h2, #listSection .hint{display:none !important;}
     #palletGrid{display:block;font-size:0;}
+    .print-page-wrap{display:block;break-after:page;page-break-after:always;}
+    .print-page-wrap:last-child{break-after:auto;page-break-after:auto;}
     .pallet-card{border:1px dashed #333;break-inside:avoid;page-break-inside:avoid;display:inline-block;vertical-align:top;width:48%;margin:0 1% 3mm 0;font-size:initial;height:127mm;overflow:hidden;box-sizing:border-box;padding:16mm 6mm 4mm;}
     .pallet-card:not(.print-include){display:none !important;}
     .pallet-card .card-top{margin-left:0;}
@@ -1244,6 +1246,32 @@
   });
   document.getElementById('closeExportBtn').addEventListener('click', function(){ document.getElementById('exportModal').classList.remove('open'); });
   document.getElementById('copyExportBtn').addEventListener('click', function(){ copyText(document.getElementById('exportArea').value); });
+
+  // ---------- print pagination (force exact groups of 4, since automatic
+  // page-break decisions for these dimensions behave inconsistently between
+  // browser engines) ----------
+  function groupForPrint(){
+    var grid = document.getElementById('palletGrid');
+    if(!grid) return;
+    ungroupAfterPrint(); // clean up any stale wrappers first
+    var cards = Array.prototype.slice.call(grid.querySelectorAll('.pallet-card.print-include'));
+    for(var i=0; i<cards.length; i+=4){
+      var wrap = document.createElement('div');
+      wrap.className = 'print-page-wrap';
+      grid.insertBefore(wrap, cards[i]);
+      cards.slice(i, i+4).forEach(function(c){ wrap.appendChild(c); });
+    }
+  }
+  function ungroupAfterPrint(){
+    var grid = document.getElementById('palletGrid');
+    if(!grid) return;
+    Array.prototype.slice.call(grid.querySelectorAll('.print-page-wrap')).forEach(function(w){
+      while(w.firstChild){ grid.insertBefore(w.firstChild, w); }
+      w.remove();
+    });
+  }
+  window.addEventListener('beforeprint', groupForPrint);
+  window.addEventListener('afterprint', ungroupAfterPrint);
 
   // ---------- init ----------
   document.getElementById('footerYear').textContent = new Date().getFullYear();
