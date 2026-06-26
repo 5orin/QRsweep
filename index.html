@@ -181,22 +181,36 @@
     #palletGrid{display:block;font-size:0;}
     .print-page-wrap{display:block;break-after:page;page-break-after:always;}
     .print-page-wrap:last-child{break-after:auto;page-break-after:auto;}
-    .pallet-card{border:1px dashed #333;break-inside:avoid;page-break-inside:avoid;display:inline-block;vertical-align:top;width:48%;margin:0 1% 3mm 0;font-size:initial;height:127mm;overflow:hidden;box-sizing:border-box;padding:16mm 6mm 4mm;}
+    .pallet-card{border:1px dashed #333;break-inside:avoid;page-break-inside:avoid;display:inline-block;vertical-align:top;width:48%;margin:0 1% 3mm 0;font-size:initial;height:114mm;overflow:hidden;box-sizing:border-box;padding:13mm 6mm 3mm;}
     .pallet-card:not(.print-include){display:none !important;}
     .pallet-card .card-top{margin-left:0;}
-    .pallet-card .qty-line{margin-left:0;margin-top:6px;}
-    .pallet-card .ref-code{font-size:23px;}
-    .pallet-card .klt-badge{font-size:12px;padding:2px 8px;}
-    .pallet-card .total{font-size:32px;}
-    .pallet-card .breakdown{font-size:13px;}
-    .pallet-card .qr-wrap{margin:6px 0 3px;}
-    .pallet-card .qr-wrap svg{width:54mm;height:54mm;}
-    .pallet-card .pal-no{font-size:12px;}
-    .pallet-card .gen-date{font-size:11px;margin-top:1px;}
+    .pallet-card .qty-line{margin-left:0;margin-top:5px;}
+    .pallet-card .ref-code{font-size:21px;}
+    .pallet-card .klt-badge{font-size:11px;padding:1px 7px;}
+    .pallet-card .total{font-size:29px;}
+    .pallet-card .breakdown{font-size:12px;}
+    .pallet-card .qr-wrap{margin:5px 0 3px;}
+    .pallet-card .qr-wrap svg{width:47mm;height:47mm;}
+    .pallet-card .pal-no{font-size:11px;}
+    .pallet-card .gen-date{font-size:10px;margin-top:1px;}
     .pallet-card .notes{
       display:-webkit-box !important;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;
-      font-size:10px;line-height:1.3;margin-top:3px;padding-top:3px;border-top:1px dashed var(--border);font-style:italic;color:#444;
+      font-size:9px;line-height:1.25;margin-top:3px;padding-top:3px;border-top:1px dashed var(--border);font-style:italic;color:#444;
     }
+  }
+  /* Non-iOS platforms (confirmed safe at this size on Windows/Chrome) get the
+     larger, less-conservative label size instead of wasting paper. */
+  @media print{
+    html:not(.is-ios-print) .pallet-card{height:127mm;padding:16mm 6mm 4mm;}
+    html:not(.is-ios-print) .pallet-card .ref-code{font-size:23px;}
+    html:not(.is-ios-print) .pallet-card .klt-badge{font-size:12px;padding:2px 8px;}
+    html:not(.is-ios-print) .pallet-card .total{font-size:32px;}
+    html:not(.is-ios-print) .pallet-card .breakdown{font-size:13px;}
+    html:not(.is-ios-print) .pallet-card .qr-wrap{margin:6px 0 3px;}
+    html:not(.is-ios-print) .pallet-card .qr-wrap svg{width:54mm;height:54mm;}
+    html:not(.is-ios-print) .pallet-card .pal-no{font-size:12px;}
+    html:not(.is-ios-print) .pallet-card .gen-date{font-size:11px;}
+    html:not(.is-ios-print) .pallet-card .notes{font-size:10px;line-height:1.3;}
   }
 </style>
 </head>
@@ -722,6 +736,13 @@
     {refCode:'33.5-09055.18E', kltType:'4315', qtyBox:48, boxQty:50, notes:'From AUTOPDF P70/0002/26 (SIMMERSFELD, 2026-06-22)'},
     {refCode:'35.8-09055.08C', kltType:'4329', qtyBox:24, boxQty:55, notes:'From AUTOPDF P70/0002/26 (SIMMERSFELD, 2026-06-22)'}
   ];
+
+  // Detect iOS (incl. iPadOS, which reports as 'MacIntel' but has touch support)
+  // so print sizing can be conservative there specifically, without wasting
+  // paper on platforms that have shown they handle the larger size fine.
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if(isIOS) document.documentElement.classList.add('is-ios-print');
 
   var DEFAULT_NEXT_PAL = 1000000001;
   var state = { references: [], pallets: [], nextPal: DEFAULT_NEXT_PAL };
