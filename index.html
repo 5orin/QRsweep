@@ -182,6 +182,7 @@
     .print-page-wrap{display:block;break-after:page;page-break-after:always;}
     .print-page-wrap:last-child{break-after:auto;page-break-after:auto;}
     .pallet-card{border:1px dashed #333;break-inside:avoid;page-break-inside:avoid;display:inline-block;vertical-align:top;width:48%;margin:0 1% 3mm 0;font-size:initial;height:114mm;overflow:hidden;box-sizing:border-box;padding:13mm 6mm 3mm;}
+    .print-page-wrap .pallet-card:nth-last-child(-n+2){margin-bottom:0;}
     .pallet-card:not(.print-include){display:none !important;}
     .pallet-card .card-top{margin-left:0;}
     .pallet-card .qty-line{margin-left:0;margin-top:5px;}
@@ -236,6 +237,10 @@
       <div class="field grow">
         <label for="syncUrlInput" data-i18n="lbl_sync_url">Adresa Worker (URL)</label>
         <input type="text" id="syncUrlInput" placeholder="https://vas-worker.vas-subdomain.workers.dev">
+      </div>
+      <div class="field grow">
+        <label for="syncTokenInput" data-i18n="lbl_sync_token">Tajný klíč (pokud je nastaven na Worker)</label>
+        <input type="text" id="syncTokenInput" autocomplete="off" placeholder="••••••••">
       </div>
       <div class="field" style="flex:0 0 auto;">
         <button class="btn-primary" id="connectSyncBtn" data-i18n="btn_connect">Připojit</button>
@@ -442,7 +447,7 @@
       confirm_delete:'Smazat paletu č. {n}? Tuto akci nelze vrátit zpět.',
       confirm_reset:'Tímto trvale odstraníte všechny uložené reference a palety v tomto zařízení. Akci nelze vrátit zpět. Pokračovat?',
       sync_title:'Synchronizace mezi zařízeními', sync_hint:'Vložte adresu vašeho Cloudflare Worker (jednou na každém zařízení) — data se pak ukládají centrálně a všechna zařízení uvidí stejné palety a reference v reálném čase.',
-      lbl_sync_url:'Adresa Worker (URL)', btn_connect:'Připojit', btn_sync_now:'Obnovit teď',
+      lbl_sync_url:'Adresa Worker (URL)', lbl_sync_token:'Tajný klíč (pokud je nastaven na Worker)', btn_connect:'Připojit', btn_sync_now:'Obnovit teď',
       sync_ok:'✓ Synchronizováno', sync_saving:'Ukládám…', sync_err:'✕ Chyba synchronizace', sync_unconfigured:'Nepřipojeno — vložte adresu Worker výše', sync_loading:'Načítám…',
       t_sync_connected:'Připojeno. Data se nyní synchronizují.', t_sync_url_empty:'Vložte adresu Worker.',
       lbl_live_sync:'Živá synchronizace (auto-ukládat a auto-načítat z ostatních zařízení)',
@@ -487,7 +492,7 @@
       confirm_delete:'Delete pallet #{n}? This cannot be undone.',
       confirm_reset:'This permanently deletes every saved reference and pallet on this device. This cannot be undone. Continue?',
       sync_title:'Sync across devices', sync_hint:'Paste your Cloudflare Worker URL (once per device) — data is then stored centrally and every device sees the same pallets and references live.',
-      lbl_sync_url:'Worker URL', btn_connect:'Connect', btn_sync_now:'Refresh now',
+      lbl_sync_url:'Worker URL', lbl_sync_token:'Secret token (if set on the Worker)', btn_connect:'Connect', btn_sync_now:'Refresh now',
       sync_ok:'✓ Synced', sync_saving:'Saving…', sync_err:'✕ Sync error', sync_unconfigured:'Not connected — paste a Worker URL above', sync_loading:'Loading…',
       t_sync_connected:'Connected. Data is now syncing.', t_sync_url_empty:'Enter a Worker URL.',
       lbl_live_sync:'Live sync (auto-save and auto-load from other devices)',
@@ -507,6 +512,7 @@
     document.getElementById('langToggleBtn').textContent = lang === 'cs' ? 'EN' : 'CZ';
     document.getElementById('refCountBadge').textContent = t('ref_count_badge', {n: state.references.length});
     document.getElementById('syncUrlInput').value = syncUrl;
+    document.getElementById('syncTokenInput').value = syncToken;
     document.getElementById('liveSyncToggle').checked = liveSyncOn;
     setSyncStatus(lastSyncKind, lastSyncDetail);
     updateNextPalReadout();
@@ -521,6 +527,7 @@
     var url = document.getElementById('syncUrlInput').value.trim();
     if(!url){ toast(t('t_sync_url_empty'), true); return; }
     setSyncUrl(url);
+    setSyncToken(document.getElementById('syncTokenInput').value);
     loadAll().then(function(){
       applyI18n();
       if(lastSyncKind === 'ok'){ toast(t('t_sync_connected')); }
@@ -751,6 +758,7 @@
 
   // ---------- sync (shared Cloudflare Worker + KV — all devices read/write the same data) ----------
   var syncUrl = (function(){ try{ return localStorage.getItem('pallet-qr:sync-url') || ''; }catch(e){ return ''; } })();
+  var syncToken = (function(){ try{ return localStorage.getItem('pallet-qr:sync-token') || ''; }catch(e){ return ''; } })();
   var liveSyncOn = (function(){ try{ return localStorage.getItem('pallet-qr:live-sync') !== '0'; }catch(e){ return true; } })();
   var pullInFlight = false;
   function setSyncUrl(url){
@@ -758,6 +766,16 @@
     if(syncUrl && !/^https?:\/\//i.test(syncUrl)){ syncUrl = 'https://' + syncUrl; }
     syncUrl = syncUrl.replace(/\/+$/, '');
     try{ localStorage.setItem('pallet-qr:sync-url', syncUrl); }catch(e){}
+  }
+  function setSyncToken(tok){
+    syncToken = (tok||'').trim();
+    try{ localStorage.setItem('pallet-qr:sync-token', syncToken); }catch(e){}
+  }
+  function authHeaders(extra){
+    var h = {};
+    if(extra){ for(var k in extra){ h[k] = extra[k]; } }
+    if(syncToken){ h['X-Sync-Token'] = syncToken; }
+    return h;
   }
   function setLiveSync(on){
     liveSyncOn = !!on;
@@ -789,7 +807,7 @@
     if(!syncUrl || !liveSyncOn) return;
     setSyncStatus('saving');
     fetchRetry(syncUrl, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:authHeaders({'Content-Type':'application/json'}),
       body: JSON.stringify({ references: state.references, pallets: state.pallets, nextPal: state.nextPal })
     }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); setSyncStatus('ok'); })
       .catch(function(e){ setSyncStatus('err', e.message); });
@@ -800,7 +818,7 @@
     if(pullInFlight) return Promise.resolve();
     pullInFlight = true;
     setSyncStatus('loading');
-    return fetchRetry(syncUrl, undefined, 2).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    return fetchRetry(syncUrl, {headers:authHeaders()}, 2).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
       .then(function(data){
         pullInFlight = false;
         if(!applyAlways && (editingId !== null || editingRefId !== null)) { setSyncStatus('ok'); return; }
@@ -873,7 +891,7 @@
       return Promise.resolve();
     }
     setSyncStatus('loading');
-    return fetchRetry(syncUrl).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    return fetchRetry(syncUrl, {headers:authHeaders()}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
       .then(function(data){
         state.references = data.references || [];
         state.pallets = data.pallets || [];
