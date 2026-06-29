@@ -10,5 +10,11 @@
   },
   "compatibility_flags": [
     "nodejs_compat"
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "PALLET_KV",
+      "id": "3793e9f95c924b8cbba76772666c6940"
+    }
   ]
 }
