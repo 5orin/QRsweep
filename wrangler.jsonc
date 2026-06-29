@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "autosync",
+  "compatibility_date": "2026-06-29",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "."
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "PALLET_KV",
+      "id": "3793e9f95c924b8cbba76772666c6940"
+    }
+  ]
+}
