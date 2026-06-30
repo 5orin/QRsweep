@@ -13,7 +13,7 @@
 
 const KEY = 'pallet-qr-state';
 const EMPTY_STATE = '{"references":[],"pallets":[],"nextPal":1000000001}';
-const ALLOWED_ORIGIN = 'https://qrsweep.pages.dev'; // <-- change if your Pages URL is different
+const ALLOWED_ORIGIN = '*'; 
 
 export default {
   async fetch(request, env) {
