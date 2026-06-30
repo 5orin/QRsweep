@@ -154,7 +154,7 @@
   .modal textarea{width:100%;height:260px;font-size:12px;font-family:'JetBrains Mono',monospace;}
   .modal .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;}
 
-  .toast-stack{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center;}
+  .toast-stack{position:fixed;top:14px;right:14px;left:auto;bottom:auto;transform:none;z-index:60;display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
   .toast{background:var(--ink);color:#fff;padding:11px 18px;border-radius:8px;font-size:13px;opacity:0;transform:translateY(8px);transition:opacity .2s ease, transform .2s ease;pointer-events:none;border-left:4px solid var(--success);box-shadow:0 4px 14px rgba(0,0,0,.18);display:flex;align-items:center;gap:8px;max-width:340px;}
   .toast.show{opacity:1;transform:translateY(0);}
   .toast.err{border-left-color:var(--danger);}
@@ -164,6 +164,8 @@
     header.top{flex-direction:column;align-items:flex-start;}
     .form-row{gap:10px;}
     .field{flex:1 1 100%;}
+    .toast-stack{top:10px;right:10px;max-width:calc(100vw - 20px);}
+    .toast{max-width:100%;}
   }
 
   .app-footer{text-align:center;font-size:12px;color:var(--muted);margin-top:24px;padding-top:14px;border-top:1px solid var(--border);}
@@ -182,6 +184,7 @@
     .print-page-wrap{display:block;break-after:page;page-break-after:always;}
     .print-page-wrap:last-child{break-after:auto;page-break-after:auto;}
     .pallet-card{border:1px dashed #333;break-inside:avoid;page-break-inside:avoid;display:inline-block;vertical-align:top;width:48%;margin:0 1% 3mm 0;font-size:initial;height:114mm;overflow:hidden;box-sizing:border-box;padding:13mm 6mm 3mm;}
+    .print-page-wrap .pallet-card:nth-last-child(-n+2){margin-bottom:0;}
     .pallet-card:not(.print-include){display:none !important;}
     .pallet-card .card-top{margin-left:0;}
     .pallet-card .qty-line{margin-left:0;margin-top:5px;}
@@ -221,7 +224,7 @@
     <div>
       <p class="eyebrow" data-i18n="eyebrow">2Stars s.r.o. · Tvorba QR kódů pro zaskladnění</p>
       <h1 data-i18n="h1">Příjem palet — QR štítky</h1>
-      <p class="sub" data-i18n="sub">Vyberte referenci, zadejte počet plných KLT a vytiskněte QR štítek pro každou paletu — bez manuálního zadávání do WMS. Funguje i bez internetu po načtení stránky.</p>
+      <p class="sub" data-i18n="sub">Vyberte referenci, zadejte počet plných KLT a vytiskněte QR štítek pro každou paletu — bez manuálního zadávání do systému.</p>
     </div>
     <div class="header-right">
       <button class="lang-btn" id="langToggleBtn" type="button">EN</button>
@@ -231,11 +234,15 @@
 
   <details class="panel-collapsible" id="syncSection">
     <summary><span class="num">↻</span> <span data-i18n="sync_title">Synchronizace mezi zařízeními</span></summary>
-    <p class="hint" data-i18n="sync_hint">Vložte adresu vašeho Cloudflare Worker (jednou na každém zařízení) — data se pak ukládají centrálně a všechna zařízení uvidí stejné palety a referencí v reálném čase.</p>
+    <p class="hint" data-i18n="sync_hint">Vložte adresu vašeho Cloudflare Workera (jednou na každém zařízení) — data se pak ukládají centrálně a všechna zařízení uvidí stejné palety a referencí v reálném čase.</p>
     <div class="form-row">
       <div class="field grow">
         <label for="syncUrlInput" data-i18n="lbl_sync_url">Adresa Worker (URL)</label>
         <input type="text" id="syncUrlInput" placeholder="https://vas-worker.vas-subdomain.workers.dev">
+      </div>
+      <div class="field grow">
+        <label for="syncTokenInput" data-i18n="lbl_sync_token">Klíč</label>
+        <input type="text" id="syncTokenInput" autocomplete="off" placeholder="••••••••">
       </div>
       <div class="field" style="flex:0 0 auto;">
         <button class="btn-primary" id="connectSyncBtn" data-i18n="btn_connect">Připojit</button>
@@ -247,14 +254,14 @@
     <div id="syncStatusLine" style="margin-top:8px;font-size:12.5px;color:var(--muted);"></div>
     <div class="live-sync-row">
       <label class="switch"><input type="checkbox" id="liveSyncToggle"><span class="switch-track"></span></label>
-      <label for="liveSyncToggle" data-i18n="lbl_live_sync">Živá synchronizace (auto-ukládat a auto-načítat z ostatních zařízení)</label>
+      <label for="liveSyncToggle" data-i18n="lbl_live_sync">Živá synchronizace (automaticky ukládá a načítá z ostatních zařízení)</label>
     </div>
   </details>
 
   <!-- ============ REFERENCE LIBRARY ============ -->
   <details class="panel-collapsible" id="refSection">
     <summary><span class="num">1</span> <span data-i18n="ref_title">Knihovna referencí</span></summary>
-    <p class="hint" data-i18n="ref_hint">Uloženo z databáze dílů AUTOPDF. Upravte řádek, pokud zákazník potřebuje něco jiného, nebo přidejte nový níže.</p>
+    <p class="hint" data-i18n="ref_hint">Níže můžete upravit/přidat/smazat reference a jejich údaje.</p>
 
     <div class="form-row">
       <div class="field grow">
@@ -281,7 +288,7 @@
     <div class="empty-msg" id="refEmptyMsg" data-i18n="ref_empty_msg">Žádné reference zatím nejsou uloženy.</div>
 
     <div class="ref-toolbar">
-      <button class="btn-ghost btn-small" id="reloadExcelBtn" data-i18n="btn_reload_excel">Načíst seznam dílů z Excelu (39 referencí)</button>
+      <button class="btn-ghost btn-small" id="reloadExcelBtn" data-i18n="btn_reload_excel">Načíst uložené reference (39 referencí)</button>
       <button class="btn-danger btn-small" id="resetAllBtn" data-i18n="btn_reset_all">Vymazat všechna data</button>
       <span class="count-badge" id="refCountBadge"></span>
     </div>
@@ -318,7 +325,7 @@
 
     <div class="form-row" style="margin-top:10px;">
       <div class="field grow">
-        <label for="palNotesInput" data-i18n="lbl_notes">Poznámky (nepovinné — pouze pro vaše záznamy, nejsou v QR kódu)</label>
+        <label for="palNotesInput" data-i18n="lbl_notes">Poznámky (jsou zobrazeny na štítku)</label>
         <input type="text" id="palNotesInput" data-i18n-ph="ph_notes" placeholder="např. rozděleno 2x INV-1234, 1x INV-5678">
       </div>
       <div class="field" style="flex:0 0 auto;">
@@ -335,7 +342,7 @@
     </div>
 
     <div class="form-row" style="margin-top:10px;">
-      <button class="btn-accent" id="addPalletBtn" data-i18n="btn_add_pallet">Přidat paletu + vygenerovat štítek</button>
+      <button class="btn-accent" id="addPalletBtn" data-i18n="btn_add_pallet">Přidat paletu a vygenerovat štítek</button>
       <button class="btn-ghost" id="settingsToggleBtn" type="button" data-i18n="btn_settings">Nastavení číslování palet</button>
     </div>
 
@@ -356,7 +363,7 @@
   <!-- ============ PALLET LIST / LABELS ============ -->
   <section class="panel" id="listSection">
     <h2><span class="num">3</span> <span data-i18n="labels_title">Štítky</span></h2>
-    <p class="hint" data-i18n="labels_hint">Vše zaškrtnuté níže se vytiskne. Odznačte vše, co nechcete v tomto tisku. Každý štítek má vlastní stažení PNG a zobrazení syrového kódu pro testování se čtečkou.</p>
+    <p class="hint" data-i18n="labels_hint">Vše zaškrtnuté níže se vytiskne. Odznačte vše, co nechcete v tomto tisku.</p>
 
     <div class="toolbar">
       <input type="text" class="search" id="searchInput" data-i18n-ph="ph_search" placeholder="Filtrovat podle reference…">
@@ -442,7 +449,7 @@
       confirm_delete:'Smazat paletu č. {n}? Tuto akci nelze vrátit zpět.',
       confirm_reset:'Tímto trvale odstraníte všechny uložené reference a palety v tomto zařízení. Akci nelze vrátit zpět. Pokračovat?',
       sync_title:'Synchronizace mezi zařízeními', sync_hint:'Vložte adresu vašeho Cloudflare Worker (jednou na každém zařízení) — data se pak ukládají centrálně a všechna zařízení uvidí stejné palety a reference v reálném čase.',
-      lbl_sync_url:'Adresa Worker (URL)', btn_connect:'Připojit', btn_sync_now:'Obnovit teď',
+      lbl_sync_url:'Adresa Worker (URL)', lbl_sync_token:'Tajný klíč (pokud je nastaven na Worker)', btn_connect:'Připojit', btn_sync_now:'Obnovit teď',
       sync_ok:'✓ Synchronizováno', sync_saving:'Ukládám…', sync_err:'✕ Chyba synchronizace', sync_unconfigured:'Nepřipojeno — vložte adresu Worker výše', sync_loading:'Načítám…',
       t_sync_connected:'Připojeno. Data se nyní synchronizují.', t_sync_url_empty:'Vložte adresu Worker.',
       lbl_live_sync:'Živá synchronizace (auto-ukládat a auto-načítat z ostatních zařízení)',
@@ -487,7 +494,7 @@
       confirm_delete:'Delete pallet #{n}? This cannot be undone.',
       confirm_reset:'This permanently deletes every saved reference and pallet on this device. This cannot be undone. Continue?',
       sync_title:'Sync across devices', sync_hint:'Paste your Cloudflare Worker URL (once per device) — data is then stored centrally and every device sees the same pallets and references live.',
-      lbl_sync_url:'Worker URL', btn_connect:'Connect', btn_sync_now:'Refresh now',
+      lbl_sync_url:'Worker URL', lbl_sync_token:'Secret token (if set on the Worker)', btn_connect:'Connect', btn_sync_now:'Refresh now',
       sync_ok:'✓ Synced', sync_saving:'Saving…', sync_err:'✕ Sync error', sync_unconfigured:'Not connected — paste a Worker URL above', sync_loading:'Loading…',
       t_sync_connected:'Connected. Data is now syncing.', t_sync_url_empty:'Enter a Worker URL.',
       lbl_live_sync:'Live sync (auto-save and auto-load from other devices)',
@@ -507,6 +514,7 @@
     document.getElementById('langToggleBtn').textContent = lang === 'cs' ? 'EN' : 'CZ';
     document.getElementById('refCountBadge').textContent = t('ref_count_badge', {n: state.references.length});
     document.getElementById('syncUrlInput').value = syncUrl;
+    document.getElementById('syncTokenInput').value = syncToken;
     document.getElementById('liveSyncToggle').checked = liveSyncOn;
     setSyncStatus(lastSyncKind, lastSyncDetail);
     updateNextPalReadout();
@@ -521,6 +529,7 @@
     var url = document.getElementById('syncUrlInput').value.trim();
     if(!url){ toast(t('t_sync_url_empty'), true); return; }
     setSyncUrl(url);
+    setSyncToken(document.getElementById('syncTokenInput').value);
     loadAll().then(function(){
       applyI18n();
       if(lastSyncKind === 'ok'){ toast(t('t_sync_connected')); }
@@ -751,6 +760,7 @@
 
   // ---------- sync (shared Cloudflare Worker + KV — all devices read/write the same data) ----------
   var syncUrl = (function(){ try{ return localStorage.getItem('pallet-qr:sync-url') || ''; }catch(e){ return ''; } })();
+  var syncToken = (function(){ try{ return localStorage.getItem('pallet-qr:sync-token') || ''; }catch(e){ return ''; } })();
   var liveSyncOn = (function(){ try{ return localStorage.getItem('pallet-qr:live-sync') !== '0'; }catch(e){ return true; } })();
   var pullInFlight = false;
   function setSyncUrl(url){
@@ -758,6 +768,16 @@
     if(syncUrl && !/^https?:\/\//i.test(syncUrl)){ syncUrl = 'https://' + syncUrl; }
     syncUrl = syncUrl.replace(/\/+$/, '');
     try{ localStorage.setItem('pallet-qr:sync-url', syncUrl); }catch(e){}
+  }
+  function setSyncToken(tok){
+    syncToken = (tok||'').trim();
+    try{ localStorage.setItem('pallet-qr:sync-token', syncToken); }catch(e){}
+  }
+  function authHeaders(extra){
+    var h = {};
+    if(extra){ for(var k in extra){ h[k] = extra[k]; } }
+    if(syncToken){ h['X-Sync-Token'] = syncToken; }
+    return h;
   }
   function setLiveSync(on){
     liveSyncOn = !!on;
@@ -789,7 +809,7 @@
     if(!syncUrl || !liveSyncOn) return;
     setSyncStatus('saving');
     fetchRetry(syncUrl, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:authHeaders({'Content-Type':'application/json'}),
       body: JSON.stringify({ references: state.references, pallets: state.pallets, nextPal: state.nextPal })
     }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); setSyncStatus('ok'); })
       .catch(function(e){ setSyncStatus('err', e.message); });
@@ -800,7 +820,7 @@
     if(pullInFlight) return Promise.resolve();
     pullInFlight = true;
     setSyncStatus('loading');
-    return fetchRetry(syncUrl, undefined, 2).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    return fetchRetry(syncUrl, {headers:authHeaders()}, 2).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
       .then(function(data){
         pullInFlight = false;
         if(!applyAlways && (editingId !== null || editingRefId !== null)) { setSyncStatus('ok'); return; }
@@ -873,7 +893,7 @@
       return Promise.resolve();
     }
     setSyncStatus('loading');
-    return fetchRetry(syncUrl).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    return fetchRetry(syncUrl, {headers:authHeaders()}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
       .then(function(data){
         state.references = data.references || [];
         state.pallets = data.pallets || [];
@@ -1074,9 +1094,11 @@
 
     savePallets(); saveCounter(); saveRefs();
     renderRefs(); refreshRefOptions(); renderPallets(); updateNextPalReadout();
-    palQtyBoxInput.value=''; document.getElementById('palNotesInput').value=''; updateTotalReadout();
+    palRefInput.value=''; palKltInput.value=''; palQtyBoxInput.value='';
+    palKltInput.dataset.userEdited=''; palBoxQtyInput.dataset.userEdited='';
+    document.getElementById('palNotesInput').value=''; updateTotalReadout();
     toast(t('t_pallet_added', {n: palNumber}));
-    palQtyBoxInput.focus();
+    palRefInput.focus();
   });
 
   document.getElementById('settingsToggleBtn').addEventListener('click', function(){
